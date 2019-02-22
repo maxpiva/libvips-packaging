@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 set -e
 
 # Working directories
@@ -40,7 +40,7 @@ VERSION_CAIRO=1.16.0
 VERSION_FRIBIDI=1.0.5
 VERSION_PANGO=1.42.4
 VERSION_CROCO=0.6.12
-VERSION_SVG=2.45.4
+VERSION_SVG=2.45.5
 VERSION_GIF=5.1.4
 
 # Least out-of-sync Sourceforge mirror
@@ -296,43 +296,19 @@ make install-strip
 # Remove the old C++ bindings
 cd ${TARGET}/include
 rm -rf vips/vipsc++.h vips/vipscpp.h
+
+# Pack only the relevant shared libraries
 cd ${TARGET}/lib
-rm -rf pkgconfig .libs *.la libvipsCC*
+mkdir ${TARGET}/lib-filterd
+cp -L libvips.so.42 ${TARGET}/lib-filterd
+while read IN; do
+  cp -L $IN ${TARGET}/lib-filterd/$IN
+  echo ${TARGET}/lib-filterd/$IN
+done < <(ldd libvips.so.42 | grep ${TARGET}/lib | cut -d '=' -f1 | awk '{print $1}')
 
-# Create JSON file of version numbers
+# Create the tarball
 cd ${TARGET}
-echo "{\n\
-  \"cairo\": \"${VERSION_CAIRO}\",\n\
-  \"croco\": \"${VERSION_CROCO}\",\n\
-  \"exif\": \"${VERSION_EXIF}\",\n\
-  \"expat\": \"${VERSION_EXPAT}\",\n\
-  \"ffi\": \"${VERSION_FFI}\",\n\
-  \"fontconfig\": \"${VERSION_FONTCONFIG}\",\n\
-  \"freetype\": \"${VERSION_FREETYPE}\",\n\
-  \"fribidi\": \"${VERSION_FRIBIDI}\",\n\
-  \"gdkpixbuf\": \"${VERSION_GDKPIXBUF}\",\n\
-  \"gettext\": \"${VERSION_GETTEXT}\",\n\
-  \"gif\": \"${VERSION_GIF}\",\n\
-  \"glib\": \"${VERSION_GLIB}\",\n\
-  \"gsf\": \"${VERSION_GSF}\",\n\
-  \"harfbuzz\": \"${VERSION_HARFBUZZ}\",\n\
-  \"jpeg\": \"${VERSION_JPEG}\",\n\
-  \"lcms\": \"${VERSION_LCMS2}\",\n\
-  \"orc\": \"${VERSION_ORC}\",\n\
-  \"pango\": \"${VERSION_PANGO}\",\n\
-  \"pixman\": \"${VERSION_PIXMAN}\",\n\
-  \"png\": \"${VERSION_PNG16}\",\n\
-  \"svg\": \"${VERSION_SVG}\",\n\
-  \"tiff\": \"${VERSION_TIFF}\",\n\
-  \"uuid\": \"${VERSION_UUID}\",\n\
-  \"vips\": \"${VERSION_VIPS}\",\n\
-  \"webp\": \"${VERSION_WEBP}\",\n\
-  \"xml\": \"${VERSION_XML2}\",\n\
-  \"zlib\": \"${VERSION_ZLIB}\"\n\
-}" >versions.json
-
-echo "\"${PLATFORM}\"" >platform.json
-
-# Create .tar.gz
-tar czf /packaging/libvips-${VERSION_VIPS}-${PLATFORM}.tar.gz include lib *.json
+rm -rf lib
+mv lib-filterd lib
+tar chzf /packaging/libvips-${VERSION_VIPS}-${PLATFORM}.tar.gz include lib
 advdef --recompress --shrink-insane /packaging/libvips-${VERSION_VIPS}-${PLATFORM}.tar.gz

@@ -1,0 +1,31 @@
+language: generic
+
+os: osx
+osx_image: xcode9.2
+
+env:
+  global:
+    - COLUMNS=240
+
+branches:
+  only:
+    - master
+
+before_install:
+  - brew cleanup
+  - brew uninstall boost carthage cgal dirmngr gdal go libgeotiff liblwgeom libspatialite maven mercurial postgis postgresql python sfcgal swiftlint
+  - brew update
+  - brew upgrade
+  - brew cleanup
+
+install:
+  - brew install advancecomp
+  - brew install https://raw.githubusercontent.com/lovell/homebrew-core/sharp-libvips/Formula/gdk-pixbuf.rb --builtin-loaders="png,jpeg" --build-from-source
+  - brew install https://raw.githubusercontent.com/lovell/homebrew-core/sharp-libvips/Formula/vips.rb --build-from-source
+
+script:
+  - ./build/osx.sh
+
+addons:
+  artifacts:
+    s3_region: eu-west-1

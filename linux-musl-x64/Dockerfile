@@ -1,7 +1,7 @@
-FROM alpine:edge
-MAINTAINER Lovell Fuller <npm@lovell.info>
+FROM alpine:3.9
+LABEL maintainer "Kleis Auke Wolthuizen <info@kleisauke.nl>"
 
-# Create Alpine edge/3.9 (musl 1.1.20) container suitable for building Linux x64 binaries
+# Create Alpine 3.9 (musl 1.1.20) container suitable for building Linux x64 binaries
 
 # Build dependencies
 RUN \
@@ -14,7 +14,7 @@ RUN \
 
 # Compiler settings
 ENV \
-  PLATFORM="linuxmusl-x64" \
+  PLATFORM="linux-musl-x64" \
   FLAGS="-O3"
 
 COPY Toolchain.cmake /root/

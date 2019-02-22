@@ -1,5 +1,5 @@
 FROM debian:wheezy
-MAINTAINER Lovell Fuller <npm@lovell.info>
+LABEL maintainer "Kleis Auke Wolthuizen <info@kleisauke.nl>"
 
 # Create Debian 7 (glibc 2.13) container suitable for building Linux x64 binaries
 

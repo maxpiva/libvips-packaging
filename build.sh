@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 set -e
 
 if [ $# -lt 1 ]; then
@@ -11,17 +11,18 @@ if [ $# -lt 1 ]; then
   echo "Optionally build for only one PLATFORM, defaults to building for all"
   echo
   echo "Possible values for PLATFORM are:"
-  echo "- win32-x64"
+  echo "- win-x64"
+  echo "- win-x86"
   echo "- linux-x64"
-  echo "- linuxmusl-x64"
-  echo "- linux-armv6"
-  echo "- linux-armv7"
-  echo "- linux-arm64v8"
+  echo "- linux-musl-x64"
   echo
   exit 1
 fi
-VERSION_VIPS="$1"
-PLATFORM="${2:-all}"
+
+version_vips="$1"
+version_vips_major=$(echo $version_vips | cut -d. -f1)
+version_vips_minor=$(echo $version_vips | cut -d. -f2)
+platform="${2:-all}"
 
 # Is docker available?
 if ! type docker >/dev/null; then
@@ -34,19 +35,31 @@ for baseimage in debian:wheezy debian:stretch alpine:edge; do
   docker pull $baseimage
 done
 
-# Windows (x64)
-if [ $PLATFORM = "all" ] || [ $PLATFORM = "win32-x64" ]; then
-  echo "Building win32-x64..."
-  docker build -t vips-dev-win32-x64 win32-x64
-  docker run --rm -e "VERSION_VIPS=${VERSION_VIPS}" -v $PWD:/packaging vips-dev-win32-x64 sh -c "/packaging/build/win.sh"
-fi
+# Windows (x64 and x86)
+for flavour in win-x64 win-x86; do
+  if [ $platform = "all" ] || [ $platform = $flavour ]; then
+    case "${flavour#*-}" in
+      x64) arch="x86_64" ;;
+      x86) arch="i686" ;;
+    esac
 
-# Linux (x64, ARMv6, ARMv7, ARM64v8)
-for flavour in linux-x64 linuxmusl-x64 linux-armv6 linux-armv7 linux-arm64v8; do
-  if [ $PLATFORM = "all" ] || [ $PLATFORM = $flavour ]; then
+    echo "Building $flavour..."
+    cd build-win64-mxe
+    . build.sh $version_vips_major.$version_vips_minor web $arch static
+
+    cd ../
+    echo "Packaging $flavour..."
+    docker build -t vips-dev-win32 win32
+    docker run --rm -e "VERSION_VIPS=${version_vips}" -e "PLATFORM=${flavour}" -v $PWD:/packaging vips-dev-win32 sh -c "/packaging/build/win.sh"
+  fi
+done
+
+# Linux (x64)
+for flavour in linux-x64 linux-musl-x64; do
+  if [ $platform = "all" ] || [ $platform = $flavour ]; then
     echo "Building $flavour..."
     docker build -t vips-dev-$flavour $flavour
-    docker run --rm -e "VERSION_VIPS=${VERSION_VIPS}" -v $PWD:/packaging vips-dev-$flavour sh -c "/packaging/build/lin.sh"
+    docker run --rm -e "VERSION_VIPS=${version_vips}" -v $PWD:/packaging vips-dev-$flavour sh -c "/packaging/build/lin.sh"
   fi
 done
 
