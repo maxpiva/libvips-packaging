@@ -94,7 +94,7 @@ case ${PLATFORM} in *musl*)
   mkdir ${DEPS}/gettext
   curl -Ls https://ftp.gnu.org/pub/gnu/gettext/gettext-${VERSION_GETTEXT}.tar.xz | tar xJC ${DEPS}/gettext --strip-components=1
   cd ${DEPS}/gettext
-  ./configure --host=${CHOST} --prefix=${TARGET} --enable-shared --disable-static --disable-dependency-tracking
+  ./configure --host=${CHOST} --prefix=${TARGET} --enable-shared --disable-static --disable-dependency-tracking --disable-libasprintf
   make install-strip
   rm ${TARGET}/include/gettext-po.h
   rm -rf ${TARGET}/lib/*gettext*
@@ -168,7 +168,7 @@ mkdir ${DEPS}/webp
 curl -Ls http://downloads.webmproject.org/releases/webp/libwebp-${VERSION_WEBP}.tar.gz | tar xzC ${DEPS}/webp --strip-components=1
 cd ${DEPS}/webp
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-shared --disable-static --disable-dependency-tracking \
-  --disable-neon --enable-libwebpmux
+  --disable-neon --enable-libwebpmux --disable-libwebpdemux # Be careful, libwebpdemux is needed when building vips >= 8.8
 make install-strip
 
 mkdir ${DEPS}/tiff
@@ -215,7 +215,8 @@ mkdir ${DEPS}/uuid
 curl -Ls https://mirrors.edge.kernel.org/pub/linux/utils/util-linux/v$(without_patch $VERSION_UUID)/util-linux-${VERSION_UUID}.tar.xz | tar xJC ${DEPS}/uuid --strip-components=1
 cd ${DEPS}/uuid
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-shared --disable-static \
-  --disable-all-programs --enable-libuuid
+  --disable-all-programs --enable-libuuid \
+  ac_cv_func_getrandom=no # https://bugs.alpinelinux.org/issues/9947
 make install-strip
 
 mkdir ${DEPS}/fontconfig
