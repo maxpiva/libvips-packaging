@@ -10,9 +10,8 @@ for path in $(pkg-config --cflags --static vips libcroco-0.6 | tr ' ' '\n' | gre
 done;
 rm include/gettext-po.h
 
-# Manually copy header files for jpeg and giflib
-cp /usr/local/opt/jpeg/include/*.h include
-cp /usr/local/opt/giflib/include/*.h include
+# Manually copy header files for giflib
+cp $(brew --prefix giflib)/include/*.h include
 
 # Pack only the relevant shared libraries
 # and modify all dylib file dependencies to use relative paths
@@ -48,13 +47,39 @@ copydeps $(brew --prefix vips)/lib/libvips.42.dylib lib
 chmod 644 include/*.h
 chmod 644 lib/*.dylib
 
+# Generate versions.json
+printf "{\n\
+  \"cairo\": \"$(pkg-config --modversion cairo)\",\n\
+  \"croco\": \"$(pkg-config --modversion libcroco-0.6)\",\n\
+  \"exif\": \"$(pkg-config --modversion libexif)\",\n\
+  \"fontconfig\": \"$(pkg-config --modversion fontconfig)\",\n\
+  \"freetype\": \"$(pkg-config --modversion freetype2)\",\n\
+  \"fribidi\": \"$(pkg-config --modversion fribidi)\",\n\
+  \"gdkpixbuf\": \"$(pkg-config --modversion gdk-pixbuf-2.0)\",\n\
+  \"gif\": \"$(grep GIFLIB_ include/gif_lib.h | cut -d' ' -f3 | paste -s -d'.' -)\",\n\
+  \"glib\": \"$(pkg-config --modversion glib-2.0)\",\n\
+  \"gsf\": \"$(pkg-config --modversion libgsf-1)\",\n\
+  \"harfbuzz\": \"$(pkg-config --modversion harfbuzz)\",\n\
+  \"jpeg\": \"$(pkg-config --modversion libjpeg)\",\n\
+  \"lcms\": \"$(pkg-config --modversion lcms2)\",\n\
+  \"orc\": \"$(pkg-config --modversion orc-0.4)\",\n\
+  \"pango\": \"$(pkg-config --modversion pango)\",\n\
+  \"pixman\": \"$(pkg-config --modversion pixman-1)\",\n\
+  \"png\": \"$(pkg-config --modversion libpng)\",\n\
+  \"svg\": \"$(pkg-config --modversion librsvg-2.0)\",\n\
+  \"tiff\": \"$(pkg-config --modversion libtiff-4)\",\n\
+  \"vips\": \"$(pkg-config --modversion vips-cpp)\",\n\
+  \"webp\": \"$(pkg-config --modversion libwebp)\",\n\
+  \"xml\": \"$(pkg-config --modversion libxml-2.0)\"\n\
+}\n" >versions.json
+
 # Generate tarball
 TARBALL=libvips-$(pkg-config --modversion vips)-osx-x64.tar.gz
-tar cfz "${TARBALL}" include lib
+tar cfz "${TARBALL}" include lib versions.json
 advdef --recompress --shrink-insane "${TARBALL}"
 
 # Remove working directories
-rm -rf lib include
+rm -rf lib include versions.json
 
 # Display checksum
 shasum *.tar.gz

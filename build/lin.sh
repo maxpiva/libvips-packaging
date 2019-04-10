@@ -30,16 +30,16 @@ VERSION_TIFF=4.0.10
 VERSION_ORC=0.4.28
 VERSION_GETTEXT=0.19.8.1
 VERSION_GDKPIXBUF=2.36.12
-VERSION_FREETYPE=2.9.1
+VERSION_FREETYPE=2.10.0
 VERSION_EXPAT=2.2.6
-VERSION_UUID=2.33.1
+VERSION_UUID=2.33.2
 VERSION_FONTCONFIG=2.13.1
-VERSION_HARFBUZZ=2.3.1
-VERSION_PIXMAN=0.38.0
+VERSION_HARFBUZZ=2.4.0
+VERSION_PIXMAN=0.38.2
 VERSION_CAIRO=1.16.0
 VERSION_FRIBIDI=1.0.5
 VERSION_PANGO=1.42.4
-VERSION_CROCO=0.6.12
+VERSION_CROCO=0.6.13
 VERSION_SVG=2.45.5
 VERSION_GIF=5.1.4
 
@@ -307,9 +307,40 @@ while read IN; do
   echo ${TARGET}/lib-filterd/$IN
 done < <(ldd libvips.so.42 | grep ${TARGET}/lib | cut -d '=' -f1 | awk '{print $1}')
 
-# Create the tarball
+# Create JSON file of version numbers
 cd ${TARGET}
+printf "{\n\
+  \"cairo\": \"${VERSION_CAIRO}\",\n\
+  \"croco\": \"${VERSION_CROCO}\",\n\
+  \"exif\": \"${VERSION_EXIF}\",\n\
+  \"expat\": \"${VERSION_EXPAT}\",\n\
+  \"ffi\": \"${VERSION_FFI}\",\n\
+  \"fontconfig\": \"${VERSION_FONTCONFIG}\",\n\
+  \"freetype\": \"${VERSION_FREETYPE}\",\n\
+  \"fribidi\": \"${VERSION_FRIBIDI}\",\n\
+  \"gdkpixbuf\": \"${VERSION_GDKPIXBUF}\",\n\
+  \"gettext\": \"${VERSION_GETTEXT}\",\n\
+  \"gif\": \"${VERSION_GIF}\",\n\
+  \"glib\": \"${VERSION_GLIB}\",\n\
+  \"gsf\": \"${VERSION_GSF}\",\n\
+  \"harfbuzz\": \"${VERSION_HARFBUZZ}\",\n\
+  \"jpeg\": \"${VERSION_JPEG}\",\n\
+  \"lcms\": \"${VERSION_LCMS2}\",\n\
+  \"orc\": \"${VERSION_ORC}\",\n\
+  \"pango\": \"${VERSION_PANGO}\",\n\
+  \"pixman\": \"${VERSION_PIXMAN}\",\n\
+  \"png\": \"${VERSION_PNG16}\",\n\
+  \"svg\": \"${VERSION_SVG}\",\n\
+  \"tiff\": \"${VERSION_TIFF}\",\n\
+  \"uuid\": \"${VERSION_UUID}\",\n\
+  \"vips\": \"${VERSION_VIPS}\",\n\
+  \"webp\": \"${VERSION_WEBP}\",\n\
+  \"xml\": \"${VERSION_XML2}\",\n\
+  \"zlib\": \"${VERSION_ZLIB}\"\n\
+}\n" >versions.json
+
+# Create the tarball
 rm -rf lib
 mv lib-filterd lib
-tar chzf /packaging/libvips-${VERSION_VIPS}-${PLATFORM}.tar.gz include lib
+tar chzf /packaging/libvips-${VERSION_VIPS}-${PLATFORM}.tar.gz include lib versions.json
 advdef --recompress --shrink-insane /packaging/libvips-${VERSION_VIPS}-${PLATFORM}.tar.gz
