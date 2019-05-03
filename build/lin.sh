@@ -24,7 +24,7 @@ VERSION_GSF=1.14.45
 VERSION_EXIF=0.6.21
 VERSION_LCMS2=2.9
 VERSION_JPEG=2.0.2
-VERSION_PNG16=1.6.34
+VERSION_PNG16=1.6.37
 VERSION_WEBP=1.0.2
 VERSION_TIFF=4.0.10
 VERSION_ORC=0.4.28
@@ -35,7 +35,7 @@ VERSION_EXPAT=2.2.6
 VERSION_UUID=2.33.2
 VERSION_FONTCONFIG=2.13.1
 VERSION_HARFBUZZ=2.4.0
-VERSION_PIXMAN=0.38.2
+VERSION_PIXMAN=0.38.4
 VERSION_CAIRO=1.16.0
 VERSION_FRIBIDI=1.0.5
 VERSION_PANGO=1.42.4
@@ -54,7 +54,7 @@ without_patch() {
 # Check for newer versions
 ALL_AT_VERSION_LATEST=true
 version_latest() {
-  VERSION_LATEST=$(curl -s https://release-monitoring.org/api/project/$3 | jq -r '.version' | tr -d v)
+  VERSION_LATEST=$(curl -s https://release-monitoring.org/api/project/$3 | jq -r '.versions[]' | grep -E -m1 '^[0-9]+(.[0-9]+)*$')
   if [ "$VERSION_LATEST" != "$2" ]; then
     ALL_AT_VERSION_LATEST=false
     echo "$1 version $2 has been superseded by $VERSION_LATEST"
@@ -68,7 +68,7 @@ version_latest "gsf" "$VERSION_GSF" "1980"
 version_latest "exif" "$VERSION_EXIF" "1607"
 version_latest "lcms2" "$VERSION_LCMS2" "9815"
 version_latest "jpeg" "$VERSION_JPEG" "1648"
-version_latest "png" "$VERSION_PNG16" "15294"
+version_latest "png" "$VERSION_PNG16" "1705"
 version_latest "webp" "$VERSION_WEBP" "1761"
 version_latest "tiff" "$VERSION_TIFF" "13521"
 version_latest "orc" "$VERSION_ORC" "2573"
@@ -168,7 +168,7 @@ mkdir ${DEPS}/webp
 curl -Ls http://downloads.webmproject.org/releases/webp/libwebp-${VERSION_WEBP}.tar.gz | tar xzC ${DEPS}/webp --strip-components=1
 cd ${DEPS}/webp
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-shared --disable-static --disable-dependency-tracking \
-  --disable-neon --enable-libwebpmux --disable-libwebpdemux # Be careful, libwebpdemux is needed when building vips >= 8.8
+  --disable-neon --enable-libwebpmux --enable-libwebpdemux
 make install-strip
 
 mkdir ${DEPS}/tiff
@@ -285,18 +285,19 @@ cd ${DEPS}/gif
 make install-strip
 
 mkdir ${DEPS}/vips
-curl -Ls https://github.com/libvips/libvips/releases/download/v${VERSION_VIPS}/vips-${VERSION_VIPS}.tar.gz | tar xzC ${DEPS}/vips --strip-components=1
+curl -Ls https://github.com/libvips/libvips/releases/download/v${VERSION_VIPS}/vips-${VERSION_VIPS}a.tar.gz | tar xzC ${DEPS}/vips --strip-components=1
 cd ${DEPS}/vips
+# Include the latest commits from the master branch
+# that fixes the shrink-on-load issues, see:
+# https://github.com/libvips/libvips/issues/1297
+# Remove when a new release candidate is available.
+curl -Ls https://raw.githubusercontent.com/libvips/build-win64-mxe/f8b4e464d3494dc00d3ccecabe2297e120edeb1e/8.8/vips-8-fixes.patch | patch -p1 -u
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-shared --disable-static --disable-dependency-tracking \
   --disable-debug --disable-introspection --without-python --without-fftw \
   --without-magick --without-pangoft2 --without-ppm --without-analyze --without-radiance \
   --with-zip-includes=${TARGET}/include --with-zip-libraries=${TARGET}/lib \
   --with-jpeg-includes=${TARGET}/include --with-jpeg-libraries=${TARGET}/lib
 make install-strip
-
-# Remove the old C++ bindings
-cd ${TARGET}/include
-rm -rf vips/vipsc++.h vips/vipscpp.h
 
 # Pack only the relevant shared libraries
 cd ${TARGET}/lib
