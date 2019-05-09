@@ -20,7 +20,7 @@ VERSION_ZLIB=1.2.11
 VERSION_FFI=3.2.1
 VERSION_GLIB=2.56.4
 VERSION_XML2=2.9.9
-VERSION_GSF=1.14.45
+VERSION_GSF=1.14.46
 VERSION_EXIF=0.6.21
 VERSION_LCMS2=2.9
 VERSION_JPEG=2.0.2
@@ -28,7 +28,7 @@ VERSION_PNG16=1.6.37
 VERSION_WEBP=1.0.2
 VERSION_TIFF=4.0.10
 VERSION_ORC=0.4.28
-VERSION_GETTEXT=0.19.8.1
+VERSION_GETTEXT=0.20
 VERSION_GDKPIXBUF=2.36.12
 VERSION_FREETYPE=2.10.0
 VERSION_EXPAT=2.2.6
@@ -285,13 +285,8 @@ cd ${DEPS}/gif
 make install-strip
 
 mkdir ${DEPS}/vips
-curl -Ls https://github.com/libvips/libvips/releases/download/v${VERSION_VIPS}/vips-${VERSION_VIPS}a.tar.gz | tar xzC ${DEPS}/vips --strip-components=1
+curl -Ls https://github.com/libvips/libvips/releases/download/v${VERSION_VIPS}/vips-${VERSION_VIPS}.tar.gz | tar xzC ${DEPS}/vips --strip-components=1
 cd ${DEPS}/vips
-# Include the latest commits from the master branch
-# that fixes the shrink-on-load issues, see:
-# https://github.com/libvips/libvips/issues/1297
-# Remove when a new release candidate is available.
-curl -Ls https://raw.githubusercontent.com/libvips/build-win64-mxe/f8b4e464d3494dc00d3ccecabe2297e120edeb1e/8.8/vips-8-fixes.patch | patch -p1 -u
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-shared --disable-static --disable-dependency-tracking \
   --disable-debug --disable-introspection --without-python --without-fftw \
   --without-magick --without-pangoft2 --without-ppm --without-analyze --without-radiance \
