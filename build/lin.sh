@@ -28,7 +28,7 @@ VERSION_PNG16=1.6.37
 VERSION_WEBP=1.0.2
 VERSION_TIFF=4.0.10
 VERSION_ORC=0.4.28
-VERSION_GETTEXT=0.20
+VERSION_GETTEXT=0.20.1
 VERSION_GDKPIXBUF=2.36.12
 VERSION_FREETYPE=2.10.0
 VERSION_EXPAT=2.2.6
@@ -40,7 +40,7 @@ VERSION_CAIRO=1.16.0
 VERSION_FRIBIDI=1.0.5
 VERSION_PANGO=1.42.4
 VERSION_CROCO=0.6.13
-VERSION_SVG=2.45.5
+VERSION_SVG=2.45.6
 VERSION_GIF=5.1.4
 
 # Least out-of-sync Sourceforge mirror
@@ -80,7 +80,7 @@ version_latest "uuid" "$VERSION_UUID" "8179"
 version_latest "fontconfig" "$VERSION_FONTCONFIG" "827"
 version_latest "harfbuzz" "$VERSION_HARFBUZZ" "1299"
 version_latest "pixman" "$VERSION_PIXMAN" "3648"
-#version_latest "cairo" "$VERSION_CAIRO" "247" # latest version 1.16.2 in release monitoring does not exist
+#version_latest "cairo" "$VERSION_CAIRO" "247" # latest version in release monitoring does not exist
 version_latest "fribidi" "$VERSION_FRIBIDI" "857"
 #version_latest "pango" "$VERSION_PANGO" "11783" # latest version requires meson instead of autotools
 version_latest "croco" "$VERSION_CROCO" "11787"
@@ -270,6 +270,7 @@ make install-strip
 mkdir ${DEPS}/svg
 curl -Lks https://download.gnome.org/sources/librsvg/$(without_patch $VERSION_SVG)/librsvg-${VERSION_SVG}.tar.xz | tar xJC ${DEPS}/svg --strip-components=1
 cd ${DEPS}/svg
+git apply -v /packaging/build/librsvg-2-fixes.patch
 # Optimise Rust code for binary size
 sed -i "s/debug = true/debug = false\ncodegen-units = 1\nincremental = false\npanic = \"abort\"\nopt-level = ${RUST_OPT_LEVEL:-\"s\"}/" Cargo.toml
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-shared --disable-static --disable-dependency-tracking \

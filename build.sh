@@ -6,7 +6,7 @@ if [ $# -lt 1 ]; then
   echo "Usage: $0 VERSION [PLATFORM]"
   echo "Build shared libraries for libvips and its dependencies via containers"
   echo
-  echo "Please specify the libvips VERSION, e.g. 8.8.0-rc2"
+  echo "Please specify the libvips VERSION, e.g. 8.8.0-rc3"
   echo
   echo "Optionally build for only one PLATFORM, defaults to building for all"
   echo
@@ -31,7 +31,7 @@ if ! type docker >/dev/null; then
 fi
 
 # Update base images
-for baseimage in debian:wheezy debian:stretch alpine:edge; do
+for baseimage in debian:jessie debian:stretch alpine:3.9; do
   docker pull $baseimage
 done
 
