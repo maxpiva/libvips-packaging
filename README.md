@@ -7,7 +7,7 @@ for the most common operating systems and CPU architectures.
 
 During packaging of NetVips, these binaries are fetched as tarballs from 
 this repository via HTTPS and stored within the NuGet package (see
-[`build.cake`](https://github.com/kleisauke/net-vips/blob/master/build.cake)
+[`Build.cs`](https://github.com/kleisauke/net-vips/blob/master/build/Build.cs)
 for details).
 
 Finally, the created `.nupkg` are uploaded on NuGet. You can find them here:
@@ -82,7 +82,6 @@ Use of libraries under the terms of the LGPLv3 is via the
 | libpng        | [libpng License](http://www.libpng.org/pub/png/src/libpng-LICENSE.txt)                                   |
 | librsvg       | LGPLv3                                                                                                   |
 | libtiff       | [libtiff License](http://www.libtiff.org/misc.html) (BSD-like)                                           |
-| libuuid       | New BSD License                                                                                          |
 | libvips       | LGPLv3                                                                                                   |
 | libwebp       | New BSD License                                                                                          |
 | libxml2       | MIT Licence                                                                                              |
