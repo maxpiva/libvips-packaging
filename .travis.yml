@@ -7,10 +7,6 @@ env:
   global:
     - COLUMNS=240
 
-branches:
-  only:
-    - master
-
 before_install:
   - brew cleanup
   - brew uninstall boost carthage cgal dirmngr freexl gdal go libgeotiff liblwgeom libspatialite libtiff maven mercurial postgis postgresql python sfcgal swiftlint
