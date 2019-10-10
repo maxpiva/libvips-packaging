@@ -6,7 +6,7 @@ if [ $# -lt 1 ]; then
   echo "Usage: $0 VERSION [PLATFORM]"
   echo "Build shared libraries for libvips and its dependencies via containers"
   echo
-  echo "Please specify the libvips VERSION, e.g. 8.8.2"
+  echo "Please specify the libvips VERSION, e.g. 8.8.3"
   echo
   echo "Optionally build for only one PLATFORM, defaults to building for all"
   echo
@@ -20,8 +20,7 @@ if [ $# -lt 1 ]; then
 fi
 
 version_vips="$1"
-version_vips_major=$(echo $version_vips | cut -d. -f1)
-version_vips_minor=$(echo $version_vips | cut -d. -f2)
+version_vips_short=${version_vips%.[[:digit:]]*}
 platform="${2:-all}"
 
 # Is docker available?
@@ -45,7 +44,7 @@ for flavour in win-x64 win-x86; do
 
     echo "Building $flavour..."
     cd build-win64-mxe
-    . build.sh $version_vips_major.$version_vips_minor web $arch static
+    . build.sh $version_vips_short web $arch static
 
     cd ../
     echo "Packaging $flavour..."

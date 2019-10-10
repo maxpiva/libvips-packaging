@@ -26,12 +26,18 @@ RUN \
     jq \
     linux-headers \
     cmake \
-  && apk --update --no-cache --repository https://alpine.global.ssl.fastly.net/alpine/3.10/community/ add cargo \
-  && apk --update --no-cache --repository https://alpine.global.ssl.fastly.net/alpine/edge/testing/ add advancecomp
+  && apk --update --no-cache --repository https://alpine.global.ssl.fastly.net/alpine/edge/testing/ add advancecomp \
+  && curl https://sh.rustup.rs -sSf | sh -s -- -y
 
 # Compiler settings
 ENV \
+  PATH="/root/.cargo/bin:$PATH" \
   PLATFORM="linux-musl-x64" \
   FLAGS="-O3"
+
+# Musl defaults to static libs but we need them to be dynamic for host toolchain.
+# The toolchain will produce static libs by default.
+ENV \
+  RUSTFLAGS="-C target-feature=-crt-static"
 
 COPY Toolchain.cmake /root/

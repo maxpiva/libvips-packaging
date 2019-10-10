@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-version_vips_major=$(echo $VERSION_VIPS | cut -d. -f1)
-version_vips_minor=$(echo $VERSION_VIPS | cut -d. -f2)
+version_vips_short=${VERSION_VIPS%.[[:digit:]]*}
 
 case "${PLATFORM#*-}" in
   x64) arch="64" ;;
@@ -12,9 +11,9 @@ esac
 mkdir -p /vips
 
 echo "Unzipping"
-unzip /packaging/build-win64-mxe/$version_vips_major.$version_vips_minor/vips-dev-w$arch-web-${VERSION_VIPS}-static.zip -d /vips
+unzip /packaging/build-win64-mxe/$version_vips_short/vips-dev-w$arch-web-${VERSION_VIPS}-static.zip -d /vips
 
-cd /vips/vips-dev-$version_vips_major.$version_vips_minor
+cd /vips/vips-dev-$version_vips_short
 cp bin/*.dll lib/
 
 echo "Creating tarball"

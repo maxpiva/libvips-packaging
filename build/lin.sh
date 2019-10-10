@@ -23,23 +23,23 @@ VERSION_XML2=2.9.9
 VERSION_GSF=1.14.46
 VERSION_EXIF=0.6.21
 VERSION_LCMS2=2.9
-VERSION_JPEG=2.0.2
+VERSION_JPEG=2.0.3
 VERSION_PNG16=1.6.37
 VERSION_WEBP=1.0.3
 VERSION_TIFF=4.0.10
-VERSION_ORC=0.4.28
+VERSION_ORC=0.4.29
 VERSION_GETTEXT=0.20.1
 VERSION_GDKPIXBUF=2.36.12
 VERSION_FREETYPE=2.10.1
-VERSION_EXPAT=2.2.7
+VERSION_EXPAT=2.2.9
 VERSION_FONTCONFIG=2.13.92
-VERSION_HARFBUZZ=2.6.1
+VERSION_HARFBUZZ=2.6.2
 VERSION_PIXMAN=0.38.4
-VERSION_CAIRO=1.16.0
-VERSION_FRIBIDI=1.0.5
+VERSION_CAIRO=1.17.2
+VERSION_FRIBIDI=1.0.7
 VERSION_PANGO=1.42.4
 VERSION_CROCO=0.6.13
-VERSION_SVG=2.45.92
+VERSION_SVG=2.46.1
 VERSION_GIF=5.1.4
 
 # Least out-of-sync Sourceforge mirror
@@ -47,7 +47,7 @@ SOURCEFORGE_BASE_URL=https://netix.dl.sourceforge.net/project/
 
 # Remove patch version component
 without_patch() {
-  echo "$1" | sed "s/\.[0-9]*$//"
+  echo "${1%.[[:digit:]]*}"
 }
 
 # Check for newer versions
@@ -70,7 +70,7 @@ version_latest "jpeg" "$VERSION_JPEG" "1648"
 version_latest "png" "$VERSION_PNG16" "1705"
 version_latest "webp" "$VERSION_WEBP" "1761"
 version_latest "tiff" "$VERSION_TIFF" "13521"
-version_latest "orc" "$VERSION_ORC" "2573"
+#version_latest "orc" "$VERSION_ORC" "2573" # pin to 0.4.29 until 0.4.31 is available
 version_latest "gettext" "$VERSION_GETTEXT" "898"
 #version_latest "gdkpixbuf" "$VERSION_GDKPIXBUF" "9533" # latest version requires meson instead of autotools
 version_latest "freetype" "$VERSION_FREETYPE" "854"
@@ -206,9 +206,8 @@ make install
 mkdir ${DEPS}/expat
 curl -Ls ${SOURCEFORGE_BASE_URL}expat/expat/${VERSION_EXPAT}/expat-${VERSION_EXPAT}.tar.bz2 | tar xjC ${DEPS}/expat --strip-components=1
 cd ${DEPS}/expat
-sed -i "s/getrandom/ignore_getrandom/g" configure # https://github.com/libexpat/libexpat/issues/239
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-shared --disable-static \
-  --disable-dependency-tracking --without-xmlwf --without-docbook
+  --disable-dependency-tracking --without-xmlwf --without-docbook --without-getrandom
 make install
 
 mkdir ${DEPS}/fontconfig
@@ -232,8 +231,9 @@ cd ${DEPS}/pixman
 make install-strip
 
 mkdir ${DEPS}/cairo
-curl -Ls http://cairographics.org/releases/cairo-${VERSION_CAIRO}.tar.xz | tar xJC ${DEPS}/cairo --strip-components=1
+curl -Ls http://cairographics.org/snapshots/cairo-${VERSION_CAIRO}.tar.xz | tar xJC ${DEPS}/cairo --strip-components=1
 cd ${DEPS}/cairo
+git apply -v /packaging/build/cairo-1-fixes.patch
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-shared --disable-static --disable-dependency-tracking \
   --disable-xlib --disable-xcb --disable-quartz --disable-win32 --disable-egl --disable-glx --disable-wgl \
   --disable-script --disable-ps --disable-trace --disable-interpreter

@@ -38,7 +38,7 @@ the same shared libraries within multiple containers.
 The output of libvips' [build-win64-mxe](https://github.com/libvips/build-win64-mxe)
 "web" target is [post-processed](build/win.sh) within a [container](win32/Dockerfile).
 
-### OS X
+### macOS
 
 Uses Travis CI to generate a binary tarball
 of libvips and its dependencies.
