@@ -5,9 +5,8 @@ LABEL maintainer "Kleis Auke Wolthuizen <info@kleisauke.nl>"
 
 # Build dependencies
 RUN \
-  apk update \
-  && apk upgrade \
-  && apk --update --no-cache add \
+  apk update && apk upgrade && \
+  apk --update --no-cache add \
     build-base \
     curl \
     git \
@@ -26,8 +25,12 @@ RUN \
     jq \
     linux-headers \
     cmake \
-  && apk --update --no-cache --repository https://alpine.global.ssl.fastly.net/alpine/edge/testing/ add advancecomp \
-  && curl https://sh.rustup.rs -sSf | sh -s -- -y
+    binutils \
+    python3 \
+    ninja && \
+  apk --update --no-cache --repository https://alpine.global.ssl.fastly.net/alpine/edge/testing/ add advancecomp && \
+  curl https://sh.rustup.rs -sSf | sh -s -- -y && \
+  pip3 install meson
 
 # Compiler settings
 ENV \
