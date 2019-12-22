@@ -9,7 +9,7 @@ env:
     - PKG_CONFIG_PATH="/usr/local/opt/libffi/lib/pkgconfig:/usr/local/opt/jpeg-turbo/lib/pkgconfig:$PKG_CONFIG_PATH"
     - HOMEBREW_NO_AUTO_UPDATE=1
     - HOMEBREW_NO_INSTALL_CLEANUP=1
-    - KEEP_PACKAGES="cmake gdbm gettext giflib git jpeg libffi libpng libxml2 openssl openssl@1.1 pcre pkg-config python readline sqlite xz"
+    - KEEP_PACKAGES="cmake gdbm gettext giflib git jpeg libffi libpng libtiff libxml2 little-cms2 openssl openssl@1.1 pcre pkg-config python readline sqlite xz"
 
 before_install:
   - brew cleanup
