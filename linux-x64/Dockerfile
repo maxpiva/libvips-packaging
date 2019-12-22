@@ -26,6 +26,11 @@ RUN \
   ln -s /usr/bin/ninja-build /usr/bin/ninja && \
   pip3 install meson
 
+# https://github.com/mesonbuild/meson/issues/314#issuecomment-559899679
+RUN \
+  cd $(dirname `python3 -c "import mesonbuild as _; print(_.__path__[0])"`) && \
+  curl https://gitlab.com/buildroot.org/buildroot/raw/master/package/meson/0001-Only-fix-RPATH-if-install_rpath-is-not-empty.patch | patch -p1
+
 # Compiler settings
 ENV \
   CC="/opt/rh/devtoolset-8/root/usr/bin/gcc" \
