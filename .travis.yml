@@ -22,9 +22,10 @@ before_install:
 
 install:
   - brew install advancecomp
-  # Need to reinstall libtiff and gdk-pixbuf for libjpeg-turbo support
-  - brew reinstall --build-from-source lovell/package-libvips-darwin/libtiff
-  - brew reinstall --build-from-source lovell/package-libvips-darwin/gdk-pixbuf
+  - brew rm -f libtiff gdk-pixbuf
+  - brew install --build-bottle lovell/package-libvips-darwin/libtiff
+  - brew install --build-bottle lovell/package-libvips-darwin/gdk-pixbuf
+  - brew postinstall lovell/package-libvips-darwin/gdk-pixbuf
   - brew install --build-bottle lovell/package-libvips-darwin/vips
 
 script:
