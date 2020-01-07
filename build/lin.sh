@@ -25,9 +25,9 @@ VERSION_XML2=2.9.10
 VERSION_GSF=1.14.46
 VERSION_EXIF=0.6.21
 VERSION_LCMS2=2.9
-VERSION_JPEG=2.0.3
+VERSION_JPEG=2.0.4
 VERSION_PNG16=1.6.37
-VERSION_WEBP=1.0.3
+VERSION_WEBP=1.1.0
 VERSION_TIFF=4.1.0
 VERSION_ORC=0.4.31
 VERSION_GETTEXT=0.20.1
@@ -94,20 +94,17 @@ if [ "$ALL_AT_VERSION_LATEST" = "false" ]; then exit 1; fi
 case ${PLATFORM} in *musl*)
   mkdir ${DEPS}/gettext
   curl -Ls https://ftp.gnu.org/pub/gnu/gettext/gettext-${VERSION_GETTEXT}.tar.xz | tar xJC ${DEPS}/gettext --strip-components=1
-  cd ${DEPS}/gettext
-  ./configure --host=${CHOST} --prefix=${TARGET} --enable-shared --disable-static --disable-dependency-tracking --disable-libasprintf
+  cd ${DEPS}/gettext/gettext-runtime
+  ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
+    --disable-libasprintf --disable-java --disable-native-java --disable-csharp
   make install-strip
-  rm ${TARGET}/include/gettext-po.h
-  rm -rf ${TARGET}/lib/*gettext*
-  export LDFLAGS="$LDFLAGS -lintl"
 esac
 
 mkdir ${DEPS}/zlib
 curl -Ls https://zlib.net/zlib-${VERSION_ZLIB}.tar.xz | tar xJC ${DEPS}/zlib --strip-components=1
 cd ${DEPS}/zlib
-./configure --prefix=${TARGET} --uname=linux
+./configure --prefix=${TARGET} --uname=linux --static
 make install
-rm ${TARGET}/lib/libz.a
 
 mkdir ${DEPS}/ffi
 curl -Ls https://sourceware.org/pub/libffi/libffi-${VERSION_FFI}.tar.gz | tar xzC ${DEPS}/ffi --strip-components=1
@@ -115,22 +112,31 @@ cd ${DEPS}/ffi
 # libffi does not properly respect libdir; force it to do so.
 # (https://sourceware.org/ml/libffi-discuss/2014/msg00016.html)
 sed -i 's/@toolexeclibdir@/$(libdir)/g' Makefile.in
-./configure --host=${CHOST} --prefix=${TARGET} --enable-shared --disable-static --disable-dependency-tracking --disable-builddir
+./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking --disable-builddir
 remove_libtool_rpath
 make install-strip
 
 mkdir ${DEPS}/glib
 curl -Lks https://download.gnome.org/sources/glib/$(without_patch $VERSION_GLIB)/glib-${VERSION_GLIB}.tar.xz | tar xJC ${DEPS}/glib --strip-components=1
 cd ${DEPS}/glib
-LDFLAGS=${LDFLAGS/\$/} meson setup _build --buildtype=release --strip --libdir=lib --prefix=${TARGET} \
-  -Dinternal_pcre=true -Dlibmount=false
+# Disable tests
+sed -i "s/build_tests = .*/build_tests = false/" meson.build
+# Build gobject as shared library (we need libgobject-2.0.so.0 for the language bindings)
+sed -i "s/library(/shared_library(/" gobject/meson.build
+sed -i "/glibconfig_conf.set('GOBJECT_STATIC_COMPILATION', '1')/d" meson.build
+case ${PLATFORM} in *musl*)
+  curl -Ls https://git.alpinelinux.org/aports/plain/main/glib/musl-libintl.patch | patch -p1
+esac
+LDFLAGS=${LDFLAGS/\$/} meson setup _build --default-library=static --buildtype=release --strip --libdir=lib --prefix=${TARGET} \
+  -Dinternal_pcre=true -Dinstalled_tests=false -Dlibmount=false
 ninja -C _build
 ninja -C _build install
 
+# TODO: https://gitlab.gnome.org/GNOME/librsvg/issues/224
 mkdir ${DEPS}/xml2
 curl -Ls http://xmlsoft.org/sources/libxml2-${VERSION_XML2}.tar.gz | tar xzC ${DEPS}/xml2 --strip-components=1
 cd ${DEPS}/xml2
-./configure --host=${CHOST} --prefix=${TARGET} --enable-shared --disable-static --disable-dependency-tracking \
+./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --without-python --without-debug --without-docbook --without-ftp --without-html --without-legacy \
   --without-push --without-schematron --with-zlib=${TARGET}
 remove_libtool_rpath
@@ -139,7 +145,7 @@ make install-strip
 mkdir ${DEPS}/gsf
 curl -Lks https://download.gnome.org/sources/libgsf/$(without_patch $VERSION_GSF)/libgsf-${VERSION_GSF}.tar.xz | tar xJC ${DEPS}/gsf --strip-components=1
 cd ${DEPS}/gsf
-./configure --host=${CHOST} --prefix=${TARGET} --enable-shared --disable-static --disable-dependency-tracking \
+./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --without-bz2 --without-gdk-pixbuf
 remove_libtool_rpath
 make install-strip
@@ -148,14 +154,14 @@ mkdir ${DEPS}/exif
 curl -Ls https://sourceforge.mirrorservice.org/l/li/libexif/libexif/${VERSION_EXIF}/libexif-${VERSION_EXIF}.tar.bz2 | tar xjC ${DEPS}/exif --strip-components=1
 cd ${DEPS}/exif
 autoreconf -fiv
-./configure --host=${CHOST} --prefix=${TARGET} --enable-shared --disable-static --disable-dependency-tracking
+./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking
 remove_libtool_rpath
 make install-strip
 
 mkdir ${DEPS}/lcms2
 curl -Ls https://sourceforge.mirrorservice.org/l/lc/lcms/lcms/${VERSION_LCMS2}/lcms2-${VERSION_LCMS2}.tar.gz | tar xzC ${DEPS}/lcms2 --strip-components=1
 cd ${DEPS}/lcms2
-./configure --host=${CHOST} --prefix=${TARGET} --enable-shared --disable-static --disable-dependency-tracking
+./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking
 remove_libtool_rpath
 make install-strip
 
@@ -163,20 +169,20 @@ mkdir ${DEPS}/jpeg
 curl -Ls https://github.com/libjpeg-turbo/libjpeg-turbo/archive/${VERSION_JPEG}.tar.gz | tar xzC ${DEPS}/jpeg --strip-components=1
 cd ${DEPS}/jpeg
 LDFLAGS=${LDFLAGS/\$/} cmake -G"Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE=/root/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_INSTALL_LIBDIR=${TARGET}/lib \
-  -DCMAKE_SKIP_RPATH=TRUE -DCMAKE_SKIP_INSTALL_RPATH=TRUE -DENABLE_SHARED=TRUE -DENABLE_STATIC=FALSE -DWITH_JPEG8=1 -DWITH_TURBOJPEG=FALSE
+  -DCMAKE_SKIP_RPATH=TRUE -DCMAKE_SKIP_INSTALL_RPATH=TRUE -DENABLE_STATIC=TRUE -DENABLE_SHARED=FALSE -DWITH_JPEG8=1 -DWITH_TURBOJPEG=FALSE
 make install/strip
 
 mkdir ${DEPS}/png16
 curl -Ls https://sourceforge.mirrorservice.org/l/li/libpng/libpng16/${VERSION_PNG16}/libpng-${VERSION_PNG16}.tar.xz | tar xJC ${DEPS}/png16 --strip-components=1
 cd ${DEPS}/png16
-./configure --host=${CHOST} --prefix=${TARGET} --enable-shared --disable-static --disable-dependency-tracking
+./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking
 remove_libtool_rpath
 make install-strip
 
 mkdir ${DEPS}/webp
 curl -Ls https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-${VERSION_WEBP}.tar.gz | tar xzC ${DEPS}/webp --strip-components=1
 cd ${DEPS}/webp
-./configure --host=${CHOST} --prefix=${TARGET} --enable-shared --disable-static --disable-dependency-tracking \
+./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-neon --enable-libwebpmux --enable-libwebpdemux
 remove_libtool_rpath
 make install-strip
@@ -185,7 +191,7 @@ mkdir ${DEPS}/tiff
 curl -Ls https://download.osgeo.org/libtiff/tiff-${VERSION_TIFF}.tar.gz | tar xzC ${DEPS}/tiff --strip-components=1
 cd ${DEPS}/tiff
 if [ -n "${CHOST}" ]; then autoreconf -fiv; fi
-./configure --host=${CHOST} --prefix=${TARGET} --enable-shared --disable-static --disable-dependency-tracking \
+./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-mdi --disable-pixarlog --disable-cxx
 remove_libtool_rpath
 make install-strip
@@ -193,7 +199,7 @@ make install-strip
 mkdir ${DEPS}/orc
 curl -Ls https://gstreamer.freedesktop.org/data/src/orc/orc-${VERSION_ORC}.tar.xz | tar xJC ${DEPS}/orc --strip-components=1
 cd ${DEPS}/orc
-LDFLAGS=${LDFLAGS/\$/} meson setup _build --buildtype=release --strip --libdir=lib --prefix=${TARGET} \
+LDFLAGS=${LDFLAGS/\$/} meson setup _build --default-library=static --buildtype=release --strip --libdir=lib --prefix=${TARGET} \
   -Dorc-test=disabled -Dbenchmarks=disabled -Dexamples=disabled -Dgtk_doc=disabled -Dtests=disabled -Dtools=disabled
 ninja -C _build
 ninja -C _build install
@@ -201,19 +207,26 @@ ninja -C _build install
 mkdir ${DEPS}/gdkpixbuf
 curl -Lks https://download.gnome.org/sources/gdk-pixbuf/$(without_patch $VERSION_GDKPIXBUF)/gdk-pixbuf-${VERSION_GDKPIXBUF}.tar.xz | tar xJC ${DEPS}/gdkpixbuf --strip-components=1
 cd ${DEPS}/gdkpixbuf
+# Disable tests and thumbnailer
 sed -i "/subdir('tests')/,+1d" meson.build
+# Disable the built-in loaders for BMP, GIF, ICO, PNM, XPM, XBM, TGA, ICNS and QTIF
+sed -i "/\[ 'bmp'/,+3d" gdk-pixbuf/meson.build
+sed -i "/\[ 'pnm'/d" gdk-pixbuf/meson.build
+sed -i "/\[ 'xpm'/,+5d" gdk-pixbuf/meson.build
 # Ensure meson can find libjpeg when cross-compiling
-sed -i "s/has_header('jpeglib.h')/has_header('jpeglib.h', args: '-I\/target\/include')/" meson.build
-sed -i "s/find_library('jpeg',/find_library('jpeg', dirs: '\/target\/lib',/" meson.build
-LDFLAGS=${LDFLAGS/\$/} meson setup _build --buildtype=release --strip --libdir=lib --prefix=${TARGET} \
+sed -i "s/has_header('jpeglib.h')/has_header('jpeglib.h', args: '-I\/target\/include')/g" meson.build
+sed -i "s/cc.find_library('jpeg'/dependency('libjpeg'/g" meson.build
+LDFLAGS=${LDFLAGS/\$/} meson setup _build --default-library=static --buildtype=release --strip --libdir=lib --prefix=${TARGET} \
   -Dtiff=false -Dx11=false -Dgir=false -Dinstalled_tests=false -Dgio_sniffing=false -Dman=false -Dbuiltin_loaders=png,jpeg
 ninja -C _build
 ninja -C _build install
+# Include libjpeg and libpng as a dependency of gdk-pixbuf, see: https://gitlab.gnome.org/GNOME/gdk-pixbuf/merge_requests/50
+sed -i "s/^\(Requires:.*\)/\1 libjpeg, libpng16/" ${TARGET}/lib/pkgconfig/gdk-pixbuf-2.0.pc
 
 mkdir ${DEPS}/freetype
 curl -Ls https://download.savannah.gnu.org/releases/freetype/freetype-${VERSION_FREETYPE}.tar.xz | tar xJC ${DEPS}/freetype --strip-components=1
 cd ${DEPS}/freetype
-./configure --host=${CHOST} --prefix=${TARGET} --enable-shared --disable-static --disable-dependency-tracking \
+./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --without-bzip2
 remove_libtool_rpath builds/unix/libtool
 make install
@@ -221,7 +234,7 @@ make install
 mkdir ${DEPS}/expat
 curl -Ls https://github.com/libexpat/libexpat/releases/download/R_${VERSION_EXPAT//./_}/expat-${VERSION_EXPAT}.tar.xz | tar xJC ${DEPS}/expat --strip-components=1
 cd ${DEPS}/expat
-./configure --host=${CHOST} --prefix=${TARGET} --enable-shared --disable-static \
+./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared \
   --disable-dependency-tracking --without-xmlwf --without-docbook --without-getrandom --without-sys-getrandom
 remove_libtool_rpath
 make install
@@ -229,7 +242,7 @@ make install
 mkdir ${DEPS}/fontconfig
 curl -Ls https://www.freedesktop.org/software/fontconfig/release/fontconfig-${VERSION_FONTCONFIG}.tar.xz | tar xJC ${DEPS}/fontconfig --strip-components=1
 cd ${DEPS}/fontconfig
-./configure --host=${CHOST} --prefix=${TARGET} --enable-shared --disable-static --disable-dependency-tracking \
+./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --with-expat-includes=${TARGET}/include --with-expat-lib=${TARGET}/lib --sysconfdir=/etc --disable-docs
 remove_libtool_rpath
 make install-strip
@@ -238,15 +251,14 @@ mkdir ${DEPS}/harfbuzz
 curl -Ls https://www.freedesktop.org/software/harfbuzz/release/harfbuzz-${VERSION_HARFBUZZ}.tar.xz | tar xJC ${DEPS}/harfbuzz --strip-components=1
 cd ${DEPS}/harfbuzz
 sed -i "s/error   \"-Wunused-local-typedefs\"/ignored \"-Wunused-local-typedefs\"/" src/hb.hh
-./configure --host=${CHOST} --prefix=${TARGET} --enable-shared --disable-static --disable-dependency-tracking
+./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking
 remove_libtool_rpath
 make install-strip
-rm ${TARGET}/lib/libharfbuzz-subset*
 
 mkdir ${DEPS}/pixman
 curl -Ls https://cairographics.org/releases/pixman-${VERSION_PIXMAN}.tar.gz | tar xzC ${DEPS}/pixman --strip-components=1
 cd ${DEPS}/pixman
-./configure --host=${CHOST} --prefix=${TARGET} --enable-shared --disable-static --disable-dependency-tracking \
+./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-libpng --disable-arm-iwmmxt
 remove_libtool_rpath
 make install-strip
@@ -254,9 +266,11 @@ make install-strip
 mkdir ${DEPS}/cairo
 curl -Ls https://cairographics.org/releases/cairo-${VERSION_CAIRO}.tar.xz | tar xJC ${DEPS}/cairo --strip-components=1
 cd ${DEPS}/cairo
-./configure --host=${CHOST} --prefix=${TARGET} --enable-shared --disable-static --disable-dependency-tracking \
+sed -i "s/^\(Libs:.*\)/\1 @CAIRO_NONPKGCONFIG_LIBS@/" src/cairo.pc.in
+./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-xlib --disable-xcb --disable-quartz --disable-win32 --disable-egl --disable-glx --disable-wgl \
-  --disable-ps --disable-trace --disable-interpreter
+  --disable-ps --disable-trace --disable-interpreter \
+  LIBS="-lpixman-1 -lfreetype"
 remove_libtool_rpath
 make install-strip
 
@@ -264,14 +278,16 @@ mkdir ${DEPS}/fribidi
 curl -Ls https://github.com/fribidi/fribidi/releases/download/v${VERSION_FRIBIDI}/fribidi-${VERSION_FRIBIDI}.tar.bz2 | tar xjC ${DEPS}/fribidi --strip-components=1
 cd ${DEPS}/fribidi
 autoreconf -fiv
-./configure --host=${CHOST} --prefix=${TARGET} --enable-shared --disable-static --disable-dependency-tracking
+./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking
 remove_libtool_rpath
 make install-strip
 
 mkdir ${DEPS}/pango
 curl -Lks https://download.gnome.org/sources/pango/$(without_patch $VERSION_PANGO)/pango-${VERSION_PANGO}.tar.xz | tar xJC ${DEPS}/pango --strip-components=1
 cd ${DEPS}/pango
-LDFLAGS=${LDFLAGS/\$/} meson setup _build --buildtype=release --strip --libdir=lib --prefix=${TARGET} \
+# Disable utils, examples, tests and tools
+sed -i "/subdir('utils')/,+3d" meson.build
+LDFLAGS=${LDFLAGS/\$/} meson setup _build --default-library=static --buildtype=release --strip --libdir=lib --prefix=${TARGET} \
   -Dgtk_doc=false -Dintrospection=false
 ninja -C _build
 ninja -C _build install
@@ -279,19 +295,20 @@ ninja -C _build install
 mkdir ${DEPS}/svg
 curl -Lks https://download.gnome.org/sources/librsvg/$(without_patch $VERSION_SVG)/librsvg-${VERSION_SVG}.tar.xz | tar xJC ${DEPS}/svg --strip-components=1
 cd ${DEPS}/svg
+sed -i "s/^\(Requires:.*\)/\1 cairo-gobject pangocairo/" librsvg.pc.in
 # Optimise Rust code for binary size
-sed -i "s/debug = true/debug = false\ncodegen-units = 1\nincremental = false\npanic = \"abort\"\nopt-level = \"s\"/" Cargo.toml
-./configure --host=${CHOST} --prefix=${TARGET} --enable-shared --disable-static --disable-dependency-tracking \
+sed -i "s/debug = true/debug = false\nopt-level = 's'\nlto = true\ncodegen-units = 1\nincremental = false\npanic = 'abort'/" Cargo.toml
+./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-introspection --disable-tools --disable-pixbuf-loader
 remove_libtool_rpath
 make install-strip
 # Clear executable bit from librsvg shared library for WSL support
-execstack -c ${TARGET}/lib/librsvg-2.so || true
+# execstack -c ${TARGET}/lib/librsvg-2.so || true
 
 mkdir ${DEPS}/gif
 curl -Ls https://sourceforge.mirrorservice.org/g/gi/giflib/giflib-${VERSION_GIF}.tar.gz | tar xzC ${DEPS}/gif --strip-components=1
 cd ${DEPS}/gif
-./configure --host=${CHOST} --prefix=${TARGET} --enable-shared --disable-static --disable-dependency-tracking
+./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking
 remove_libtool_rpath
 make install-strip
 
@@ -299,14 +316,15 @@ mkdir ${DEPS}/vips
 curl -Ls https://github.com/libvips/libvips/releases/download/v${VERSION_VIPS}/vips-${VERSION_VIPS}.tar.gz | tar xzC ${DEPS}/vips --strip-components=1
 cd ${DEPS}/vips
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-shared --disable-static --disable-dependency-tracking \
-  --disable-debug --disable-introspection --without-python --without-fftw \
-  --without-magick --without-pangoft2 --without-ppm --without-analyze --without-radiance \
+  --disable-debug --disable-introspection --without-analyze --without-cfitsio --without-fftw --without-heif \
+  --without-imagequant --without-magick --without-matio --without-nifti --without-OpenEXR --without-openslide \
+  --without-pdfium --without-poppler --without-ppm --without-radiance \
   --with-zip-includes=${TARGET}/include --with-zip-libraries=${TARGET}/lib \
   --with-jpeg-includes=${TARGET}/include --with-jpeg-libraries=${TARGET}/lib
 remove_libtool_rpath
 make install-strip
 
-# Pack only the relevant shared libraries
+# Pack only the relevant libraries
 cd ${TARGET}/lib
 mkdir ${TARGET}/lib-filterd
 cp -L libvips.so.42 ${TARGET}/lib-filterd

@@ -37,6 +37,6 @@ ENV \
   CXX="/opt/rh/devtoolset-8/root/usr/bin/g++" \
   PATH="/root/.cargo/bin:$PATH" \
   PLATFORM="linux-x64" \
-  FLAGS="-O3"
+  FLAGS="-s -O3 -ffast-math -fPIC"
 
 COPY Toolchain.cmake /root/

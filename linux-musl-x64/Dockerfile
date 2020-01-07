@@ -41,7 +41,7 @@ RUN \
 ENV \
   PATH="/root/.cargo/bin:$PATH" \
   PLATFORM="linux-musl-x64" \
-  FLAGS="-O3"
+  FLAGS="-s -O3 -ffast-math -fPIC"
 
 # Musl defaults to static libs but we need them to be dynamic for host toolchain.
 # The toolchain will produce static libs by default.

@@ -18,11 +18,12 @@ before_install:
   - brew cleanup
   # Remove unused formulae to speed upgrade
   - brew list -1 | grep -Ev ${KEEP_DEPENDENCIES//$'\n'/|} | xargs brew rm -f
+  # Ensure libtiff and gdk-pixbuf are also removed (for libjpeg-turbo support)
+  - brew rm -f libtiff gdk-pixbuf
   - brew upgrade
 
 install:
   - brew install advancecomp
-  - brew rm -f libtiff gdk-pixbuf
   - brew install --build-bottle lovell/package-libvips-darwin/libtiff
   - brew install --build-bottle lovell/package-libvips-darwin/gdk-pixbuf
   - brew postinstall lovell/package-libvips-darwin/gdk-pixbuf
