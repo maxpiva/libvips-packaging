@@ -68,18 +68,21 @@ printf "{\n\
   \"png\": \"$(pkg-config --modversion libpng)\",\n\
   \"svg\": \"$(pkg-config --modversion librsvg-2.0)\",\n\
   \"tiff\": \"$(pkg-config --modversion libtiff-4)\",\n\
-  \"vips\": \"$(pkg-config --modversion vips)-rc4\",\n\
+  \"vips\": \"$(pkg-config --modversion vips)\",\n\
   \"webp\": \"$(pkg-config --modversion libwebp)\",\n\
   \"xml\": \"$(pkg-config --modversion libxml-2.0)\"\n\
 }\n" >versions.json
 
+# Add third-party notices
+curl -Os https://raw.githubusercontent.com/kleisauke/libvips-packaging/master/THIRD-PARTY-NOTICES.md
+
 # Generate tarball
-TARBALL=libvips-$(pkg-config --modversion vips)-rc4-osx-x64.tar.gz
-tar cfz "${TARBALL}" include lib versions.json
+TARBALL=libvips-$(pkg-config --modversion vips)-osx-x64.tar.gz
+tar cfz "${TARBALL}" include lib versions.json THIRD-PARTY-NOTICES.md
 advdef --recompress --shrink-insane "${TARBALL}"
 
 # Remove working directories
-rm -rf lib include versions.json
+rm -rf lib include versions.json THIRD-PARTY-NOTICES.md
 
 # Display checksum
 shasum *.tar.gz

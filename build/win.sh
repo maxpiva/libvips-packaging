@@ -10,13 +10,26 @@ esac
 
 mkdir -p /vips
 
-echo "Unzipping"
+# Unzip
 unzip /packaging/build-win64-mxe/$version_vips_short/vips-dev-w$arch-web-${VERSION_VIPS}-static.zip -d /vips
 
 cd /vips/vips-dev-$version_vips_short
 cp bin/*.dll lib/
 
-echo "Creating tarball"
-tar czf /packaging/libvips-${VERSION_VIPS}-${PLATFORM}.tar.gz include lib/glib-2.0 lib/libvips.lib lib/libglib-2.0.lib lib/libgobject-2.0.lib lib/*.dll versions.json
-echo "Shrinking tarball"
+# Add third-party notices
+curl -Os https://raw.githubusercontent.com/kleisauke/libvips-packaging/master/THIRD-PARTY-NOTICES.md
+
+# Generate tarball
+tar czf /packaging/libvips-${VERSION_VIPS}-${PLATFORM}.tar.gz \
+  include \
+  lib/glib-2.0 \
+  lib/libvips.lib \
+  lib/libglib-2.0.lib \
+  lib/libgobject-2.0.lib \
+  lib/*.dll \
+  versions.json \
+  THIRD-PARTY-NOTICES.md
 advdef --recompress --shrink-insane /packaging/libvips-${VERSION_VIPS}-${PLATFORM}.tar.gz
+
+# Remove working directories
+rm -rf lib include versions.json THIRD-PARTY-NOTICES.md

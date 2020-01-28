@@ -8,7 +8,7 @@ mkdir ${DEPS}
 mkdir ${TARGET}
 
 # Common build paths and flags
-export PKG_CONFIG_PATH="${PKG_CONFIG_PATH}:${TARGET}/lib/pkgconfig"
+export PKG_CONFIG_PATH="${TARGET}/lib/pkgconfig"
 export PATH="${PATH}:${TARGET}/bin"
 export CPATH="${TARGET}/include"
 export LIBRARY_PATH="${TARGET}/lib"
@@ -20,7 +20,7 @@ export LDFLAGS="-Wl,-rpath='\$\$ORIGIN/'"
 # Dependency version numbers
 VERSION_ZLIB=1.2.11
 VERSION_FFI=3.3
-VERSION_GLIB=2.63.3
+VERSION_GLIB=2.63.4
 VERSION_XML2=2.9.10
 VERSION_GSF=1.14.46
 VERSION_EXIF=0.6.21
@@ -40,7 +40,7 @@ VERSION_PIXMAN=0.38.4
 VERSION_CAIRO=1.16.0
 VERSION_FRIBIDI=1.0.8
 VERSION_PANGO=1.44.7
-VERSION_SVG=2.47.1
+VERSION_SVG=2.47.2
 VERSION_GIF=5.1.4
 
 # Remove patch version component
@@ -109,10 +109,8 @@ make install
 mkdir ${DEPS}/ffi
 curl -Ls https://sourceware.org/pub/libffi/libffi-${VERSION_FFI}.tar.gz | tar xzC ${DEPS}/ffi --strip-components=1
 cd ${DEPS}/ffi
-# libffi does not properly respect libdir; force it to do so.
-# (https://sourceware.org/ml/libffi-discuss/2014/msg00016.html)
-sed -i 's/@toolexeclibdir@/$(libdir)/g' Makefile.in
-./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking --disable-builddir
+./configure --host=${CHOST} --prefix=${TARGET} --libdir=${TARGET}/lib --enable-static --disable-shared --disable-dependency-tracking \
+  --disable-builddir  --disable-multi-os-directory
 remove_libtool_rpath
 make install-strip
 
@@ -315,6 +313,7 @@ make install-strip
 mkdir ${DEPS}/vips
 curl -Ls https://github.com/libvips/libvips/releases/download/v${VERSION_VIPS}/vips-${VERSION_VIPS}.tar.gz | tar xzC ${DEPS}/vips --strip-components=1
 cd ${DEPS}/vips
+patch -p1 < /packaging/build/patches/vips-8-configure.patch && autoreconf -vi
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-shared --disable-static --disable-dependency-tracking \
   --disable-debug --disable-introspection --without-analyze --without-cfitsio --without-fftw --without-heif \
   --without-imagequant --without-magick --without-matio --without-nifti --without-OpenEXR --without-openslide \
@@ -327,11 +326,26 @@ make install-strip
 # Pack only the relevant libraries
 cd ${TARGET}/lib
 mkdir ${TARGET}/lib-filterd
-cp -L libvips.so.42 ${TARGET}/lib-filterd
-while read IN; do
-  cp -L $IN ${TARGET}/lib-filterd/$IN
-  echo ${TARGET}/lib-filterd/$IN
-done < <(ldd libvips.so.42 | grep ${TARGET}/lib | cut -d '=' -f1 | awk '{print $1}')
+
+function copydeps {
+  local base=$1
+  local dest_dir=$2
+
+  cp -L $base $dest_dir/$base
+
+  for dep in $(readelf -d $base | grep NEEDED | awk '{ print $5 }' | tr -d '[]'); do
+    [ -f "${TARGET}/lib/$dep" ] || continue
+
+    echo "$base depends on $dep"
+
+    if [ ! -f "$dest_dir/$dep" ]; then
+      # Call this function (recursive) on each dependency of this library
+      copydeps $dep $dest_dir
+    fi
+  done;
+}
+
+copydeps libvips.so.42 ${TARGET}/lib-filterd
 
 # Create JSON file of version numbers
 cd ${TARGET}
@@ -366,5 +380,14 @@ printf "{\n\
 # Create the tarball
 rm -rf lib
 mv lib-filterd lib
-tar chzf /packaging/libvips-${VERSION_VIPS}-${PLATFORM}.tar.gz include lib versions.json
+
+# Add third-party notices
+curl -Os https://raw.githubusercontent.com/kleisauke/libvips-packaging/master/THIRD-PARTY-NOTICES.md
+
+tar chzf /packaging/libvips-${VERSION_VIPS}-${PLATFORM}.tar.gz \
+  include \
+  lib \
+  versions.json \
+  THIRD-PARTY-NOTICES.md
+
 advdef --recompress --shrink-insane /packaging/libvips-${VERSION_VIPS}-${PLATFORM}.tar.gz
