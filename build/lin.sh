@@ -326,6 +326,7 @@ make install-strip
 # Pack only the relevant libraries
 cd ${TARGET}/lib
 mkdir ${TARGET}/lib-filterd
+mv glib-2.0 ${TARGET}/lib-filterd
 
 function copydeps {
   local base=$1

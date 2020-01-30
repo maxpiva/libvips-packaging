@@ -23,7 +23,7 @@ function copydeps {
   # libgobject-2.0.0.dylib -> libgobject-2.0.dylib
   local base=$(basename $file | sed -E "s/(\.[0-9])\.[0-9]./\1./")
 
-  while read dep; do
+  for dep in $(otool -LX $file | awk '{print $1}' | grep '/usr/local'); do
     base_dep=$(basename $dep | sed -E "s/(\.[0-9])\.[0-9]./\1./")
 
     echo "$base depends on $base_dep"
@@ -38,7 +38,7 @@ function copydeps {
       # Call this function (recursive) on each dependency of this library
       copydeps $dest_dir/$base_dep $dest_dir
     fi
-  done < <(otool -LX $file | awk '{print $1}' | grep '/usr/local')
+  done
 }
 
 copydeps $(brew --prefix vips)/lib/libvips.42.dylib lib
@@ -71,7 +71,7 @@ printf "{\n\
   \"vips\": \"$(pkg-config --modversion vips)\",\n\
   \"webp\": \"$(pkg-config --modversion libwebp)\",\n\
   \"xml\": \"$(pkg-config --modversion libxml-2.0)\"\n\
-}\n" >versions.json
+}" >versions.json
 
 # Add third-party notices
 curl -Os https://raw.githubusercontent.com/kleisauke/libvips-packaging/master/THIRD-PARTY-NOTICES.md
