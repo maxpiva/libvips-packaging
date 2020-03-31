@@ -8,7 +8,7 @@ mkdir ${DEPS}
 mkdir ${TARGET}
 
 # Common build paths and flags
-export PKG_CONFIG_PATH="${TARGET}/lib/pkgconfig"
+export PKG_CONFIG_LIBDIR="${TARGET}/lib/pkgconfig"
 export PATH="${PATH}:${TARGET}/bin"
 export CPATH="${TARGET}/include"
 export LIBRARY_PATH="${TARGET}/lib"
@@ -20,9 +20,9 @@ export LDFLAGS="-Wl,-rpath='\$\$ORIGIN/'"
 # Dependency version numbers
 VERSION_ZLIB=1.2.11
 VERSION_FFI=3.3
-VERSION_GLIB=2.63.4
+VERSION_GLIB=2.64.1
 VERSION_XML2=2.9.10
-VERSION_GSF=1.14.46
+VERSION_GSF=1.14.47
 VERSION_EXIF=0.6.21
 VERSION_LCMS2=2.9
 VERSION_JPEG=2.0.4
@@ -38,20 +38,14 @@ VERSION_FONTCONFIG=2.13.92
 VERSION_HARFBUZZ=2.6.4
 VERSION_PIXMAN=0.38.4
 VERSION_CAIRO=1.16.0
-VERSION_FRIBIDI=1.0.8
+VERSION_FRIBIDI=1.0.9
 VERSION_PANGO=1.44.7
-VERSION_SVG=2.47.2
+VERSION_SVG=2.48.1
 VERSION_GIF=5.1.4
 
 # Remove patch version component
 without_patch() {
   echo "${1%.[[:digit:]]*}"
-}
-
-# https://docs.fedoraproject.org/en-US/packaging-guidelines/#_removing_rpath
-remove_libtool_rpath() {
-  sed -i 's|^hardcode_libdir_flag_spec=.*|hardcode_libdir_flag_spec=""|g' ${1:-libtool}
-  sed -i 's|^runpath_var=LD_RUN_PATH|runpath_var=DIE_RPATH_DIE|g' ${1:-libtool}
 }
 
 # Check for newer versions
@@ -107,11 +101,10 @@ cd ${DEPS}/zlib
 make install
 
 mkdir ${DEPS}/ffi
-curl -Ls https://sourceware.org/pub/libffi/libffi-${VERSION_FFI}.tar.gz | tar xzC ${DEPS}/ffi --strip-components=1
+curl -Ls https://www.mirrorservice.org/sites/sourceware.org/pub/libffi/libffi-${VERSION_FFI}.tar.gz | tar xzC ${DEPS}/ffi --strip-components=1
 cd ${DEPS}/ffi
 ./configure --host=${CHOST} --prefix=${TARGET} --libdir=${TARGET}/lib --enable-static --disable-shared --disable-dependency-tracking \
-  --disable-builddir  --disable-multi-os-directory
-remove_libtool_rpath
+  --disable-builddir --disable-multi-os-directory --disable-raw-api
 make install-strip
 
 mkdir ${DEPS}/glib
@@ -126,7 +119,7 @@ case ${PLATFORM} in *musl*)
   curl -Ls https://git.alpinelinux.org/aports/plain/main/glib/musl-libintl.patch | patch -p1
 esac
 LDFLAGS=${LDFLAGS/\$/} meson setup _build --default-library=static --buildtype=release --strip --libdir=lib --prefix=${TARGET} \
-  -Dinternal_pcre=true -Dinstalled_tests=false -Dlibmount=false
+  -Dinternal_pcre=true -Dinstalled_tests=false -Dlibmount=disabled
 ninja -C _build
 ninja -C _build install
 
@@ -137,15 +130,13 @@ cd ${DEPS}/xml2
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --without-python --without-debug --without-docbook --without-ftp --without-html --without-legacy \
   --without-push --without-schematron --with-zlib=${TARGET}
-remove_libtool_rpath
 make install-strip
 
 mkdir ${DEPS}/gsf
 curl -Lks https://download.gnome.org/sources/libgsf/$(without_patch $VERSION_GSF)/libgsf-${VERSION_GSF}.tar.xz | tar xJC ${DEPS}/gsf --strip-components=1
 cd ${DEPS}/gsf
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
-  --without-bz2 --without-gdk-pixbuf
-remove_libtool_rpath
+  --without-bz2 --without-gdk-pixbuf --with-zlib=${TARGET}
 make install-strip
 
 mkdir ${DEPS}/exif
@@ -153,28 +144,25 @@ curl -Ls https://sourceforge.mirrorservice.org/l/li/libexif/libexif/${VERSION_EX
 cd ${DEPS}/exif
 autoreconf -fiv
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking
-remove_libtool_rpath
 make install-strip
 
 mkdir ${DEPS}/lcms2
 curl -Ls https://sourceforge.mirrorservice.org/l/lc/lcms/lcms/${VERSION_LCMS2}/lcms2-${VERSION_LCMS2}.tar.gz | tar xzC ${DEPS}/lcms2 --strip-components=1
 cd ${DEPS}/lcms2
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking
-remove_libtool_rpath
 make install-strip
 
 mkdir ${DEPS}/jpeg
 curl -Ls https://github.com/libjpeg-turbo/libjpeg-turbo/archive/${VERSION_JPEG}.tar.gz | tar xzC ${DEPS}/jpeg --strip-components=1
 cd ${DEPS}/jpeg
 LDFLAGS=${LDFLAGS/\$/} cmake -G"Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE=/root/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_INSTALL_LIBDIR=${TARGET}/lib \
-  -DCMAKE_SKIP_RPATH=TRUE -DCMAKE_SKIP_INSTALL_RPATH=TRUE -DENABLE_STATIC=TRUE -DENABLE_SHARED=FALSE -DWITH_JPEG8=1 -DWITH_TURBOJPEG=FALSE
+  -DENABLE_STATIC=TRUE -DENABLE_SHARED=FALSE -DWITH_JPEG8=1 -DWITH_TURBOJPEG=FALSE
 make install/strip
 
 mkdir ${DEPS}/png16
 curl -Ls https://sourceforge.mirrorservice.org/l/li/libpng/libpng16/${VERSION_PNG16}/libpng-${VERSION_PNG16}.tar.xz | tar xJC ${DEPS}/png16 --strip-components=1
 cd ${DEPS}/png16
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking
-remove_libtool_rpath
 make install-strip
 
 mkdir ${DEPS}/webp
@@ -182,7 +170,6 @@ curl -Ls https://storage.googleapis.com/downloads.webmproject.org/releases/webp/
 cd ${DEPS}/webp
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-neon --enable-libwebpmux --enable-libwebpdemux
-remove_libtool_rpath
 make install-strip
 
 mkdir ${DEPS}/tiff
@@ -191,7 +178,6 @@ cd ${DEPS}/tiff
 if [ -n "${CHOST}" ]; then autoreconf -fiv; fi
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-mdi --disable-pixarlog --disable-cxx
-remove_libtool_rpath
 make install-strip
 
 mkdir ${DEPS}/orc
@@ -226,7 +212,6 @@ curl -Ls https://download.savannah.gnu.org/releases/freetype/freetype-${VERSION_
 cd ${DEPS}/freetype
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --without-bzip2
-remove_libtool_rpath builds/unix/libtool
 make install
 
 mkdir ${DEPS}/expat
@@ -234,7 +219,6 @@ curl -Ls https://github.com/libexpat/libexpat/releases/download/R_${VERSION_EXPA
 cd ${DEPS}/expat
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared \
   --disable-dependency-tracking --without-xmlwf --without-docbook --without-getrandom --without-sys-getrandom
-remove_libtool_rpath
 make install
 
 mkdir ${DEPS}/fontconfig
@@ -242,7 +226,6 @@ curl -Ls https://www.freedesktop.org/software/fontconfig/release/fontconfig-${VE
 cd ${DEPS}/fontconfig
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --with-expat-includes=${TARGET}/include --with-expat-lib=${TARGET}/lib --sysconfdir=/etc --disable-docs
-remove_libtool_rpath
 make install-strip
 
 mkdir ${DEPS}/harfbuzz
@@ -250,7 +233,6 @@ curl -Ls https://www.freedesktop.org/software/harfbuzz/release/harfbuzz-${VERSIO
 cd ${DEPS}/harfbuzz
 sed -i "s/error   \"-Wunused-local-typedefs\"/ignored \"-Wunused-local-typedefs\"/" src/hb.hh
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking
-remove_libtool_rpath
 make install-strip
 
 mkdir ${DEPS}/pixman
@@ -258,7 +240,6 @@ curl -Ls https://cairographics.org/releases/pixman-${VERSION_PIXMAN}.tar.gz | ta
 cd ${DEPS}/pixman
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-libpng --disable-arm-iwmmxt
-remove_libtool_rpath
 make install-strip
 
 mkdir ${DEPS}/cairo
@@ -269,15 +250,13 @@ sed -i "s/^\(Libs:.*\)/\1 @CAIRO_NONPKGCONFIG_LIBS@/" src/cairo.pc.in
   --disable-xlib --disable-xcb --disable-quartz --disable-win32 --disable-egl --disable-glx --disable-wgl \
   --disable-ps --disable-trace --disable-interpreter \
   LIBS="-lpixman-1 -lfreetype"
-remove_libtool_rpath
 make install-strip
 
 mkdir ${DEPS}/fribidi
-curl -Ls https://github.com/fribidi/fribidi/releases/download/v${VERSION_FRIBIDI}/fribidi-${VERSION_FRIBIDI}.tar.bz2 | tar xjC ${DEPS}/fribidi --strip-components=1
+curl -Ls https://github.com/fribidi/fribidi/releases/download/v${VERSION_FRIBIDI}/fribidi-${VERSION_FRIBIDI}.tar.xz | tar xJC ${DEPS}/fribidi --strip-components=1
 cd ${DEPS}/fribidi
 autoreconf -fiv
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking
-remove_libtool_rpath
 make install-strip
 
 mkdir ${DEPS}/pango
@@ -298,16 +277,12 @@ sed -i "s/^\(Requires:.*\)/\1 cairo-gobject pangocairo/" librsvg.pc.in
 sed -i "s/debug = true/debug = false\nopt-level = 's'\nlto = true\ncodegen-units = 1\nincremental = false\npanic = 'abort'/" Cargo.toml
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-introspection --disable-tools --disable-pixbuf-loader
-remove_libtool_rpath
 make install-strip
-# Clear executable bit from librsvg shared library for WSL support
-# execstack -c ${TARGET}/lib/librsvg-2.so || true
 
 mkdir ${DEPS}/gif
 curl -Ls https://sourceforge.mirrorservice.org/g/gi/giflib/giflib-${VERSION_GIF}.tar.gz | tar xzC ${DEPS}/gif --strip-components=1
 cd ${DEPS}/gif
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking
-remove_libtool_rpath
 make install-strip
 
 mkdir ${DEPS}/vips
@@ -320,14 +295,17 @@ patch -p1 < /packaging/build/patches/vips-8-configure.patch && autoreconf -vi
   --without-pdfium --without-poppler --without-ppm --without-radiance \
   --with-zip-includes=${TARGET}/include --with-zip-libraries=${TARGET}/lib \
   --with-jpeg-includes=${TARGET}/include --with-jpeg-libraries=${TARGET}/lib
-remove_libtool_rpath
+# https://docs.fedoraproject.org/en-US/packaging-guidelines/#_removing_rpath
+sed -i 's|^hardcode_libdir_flag_spec=.*|hardcode_libdir_flag_spec=""|g' libtool
 make install-strip
 
-# Pack only the relevant libraries
 cd ${TARGET}/lib
+
 mkdir ${TARGET}/lib-filterd
 mv glib-2.0 ${TARGET}/lib-filterd
 
+# Pack only the relevant libraries
+# Note: we can't use ldd, since that can only be executed on the target machine
 function copydeps {
   local base=$1
   local dest_dir=$2
@@ -346,7 +324,7 @@ function copydeps {
   done;
 }
 
-copydeps libvips.so.42 ${TARGET}/lib-filterd
+copydeps libvips-cpp.so.42 ${TARGET}/lib-filterd
 
 # Create JSON file of version numbers
 cd ${TARGET}

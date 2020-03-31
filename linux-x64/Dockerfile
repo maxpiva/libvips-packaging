@@ -30,7 +30,7 @@ RUN \
 # https://github.com/mesonbuild/meson/issues/314#issuecomment-559899679
 RUN \
   cd $(dirname `python3 -c "import mesonbuild as _; print(_.__path__[0])"`) && \
-  curl https://gitlab.com/buildroot.org/buildroot/raw/master/package/meson/0001-Only-fix-RPATH-if-install_rpath-is-not-empty.patch | patch -p1
+  curl https://gist.github.com/kleisauke/0b766e9d9867bb9c7c152ec9e950acb3/raw/b09492a4178099cc6e7541a423c2e84897e28aa8/0001-Only-fix-RPATH-if-install_rpath-is-not-empty.patch | patch -p1
 
 # Compiler settings
 ENV \

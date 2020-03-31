@@ -41,7 +41,7 @@ function copydeps {
   done
 }
 
-copydeps $(brew --prefix vips)/lib/libvips.42.dylib lib
+copydeps $(brew --prefix vips)/lib/libvips-cpp.42.dylib lib
 
 # Fix file permissions
 chmod 644 include/*.h

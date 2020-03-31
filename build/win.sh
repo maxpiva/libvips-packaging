@@ -14,6 +14,8 @@ mkdir -p /vips
 unzip /packaging/build-win64-mxe/$version_vips_short/vips-dev-w$arch-web-${VERSION_VIPS}-static.zip -d /vips
 
 cd /vips/vips-dev-$version_vips_short
+
+# Move DLLs to the lib directory
 cp bin/*.dll lib/
 
 # Add third-party notices
