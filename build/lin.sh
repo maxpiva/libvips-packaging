@@ -17,6 +17,14 @@ export CFLAGS="${FLAGS}"
 export CXXFLAGS="${FLAGS}"
 export LDFLAGS="-Wl,-rpath='\$\$ORIGIN/'"
 
+if [[ $CFLAGS == *"-ffast-math"* ]]; then
+  base64 -d <<<"H4sIAESAg14AA41PQQ6DIBC884o5atLqO/qEJkSCAZUUWaNYYuPji9Yam/bQSQjL7OwwC/EnWI4r
+jWjkXUM7WVqtUMnBo5W+wRGczaDOm9Y8pDfkBtSWSmntlOFSYYouN0dhkc5RGhrpV1L2GoqMq0/r
+s+vjUGknBBqtilIOR/4VQJHTMD7DT+QM5z/B9tDxFEIUO7EwCVHK3/sff0iESPlWpzznH811sXlx
+DzH1d2e72BOI5SxeewEAAA==" | gunzip
+  exit 1
+fi
+
 # Dependency version numbers
 VERSION_ZLIB=1.2.11
 VERSION_FFI=3.3
