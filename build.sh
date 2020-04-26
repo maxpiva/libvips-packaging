@@ -6,7 +6,7 @@ if [ $# -lt 1 ]; then
   echo "Usage: $0 VERSION [PLATFORM]"
   echo "Build shared libraries for libvips and its dependencies via containers"
   echo
-  echo "Please specify the libvips VERSION, e.g. 8.9.1"
+  echo "Please specify the libvips VERSION, e.g. 8.9.2"
   echo
   echo "Optionally build for only one PLATFORM, defaults to building for all"
   echo
@@ -30,24 +30,14 @@ if ! type docker >/dev/null; then
 fi
 
 # Update base images
-for baseimage in centos:7 debian:stretch alpine:3.10; do
+for baseimage in centos:7 debian:buster alpine:3.11; do
   docker pull $baseimage
 done
 
 # Windows (x64 and x86)
 for flavour in win-x64 win-x86; do
   if [ $platform = "all" ] || [ $platform = $flavour ]; then
-    case "${flavour#*-}" in
-      x64) arch="x86_64" ;;
-      x86) arch="i686" ;;
-    esac
-
     echo "Building $flavour..."
-    cd build-win64-mxe
-    . build.sh $version_vips_short web $arch static
-
-    cd ../
-    echo "Packaging $flavour..."
     docker build -t vips-dev-win32 win32
     docker run --rm -e "VERSION_VIPS=${version_vips}" -e "PLATFORM=${flavour}" -v $PWD:/packaging vips-dev-win32 sh -c "/packaging/build/win.sh"
   fi

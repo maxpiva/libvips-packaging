@@ -11,11 +11,10 @@ mkdir ${TARGET}
 export PKG_CONFIG_LIBDIR="${TARGET}/lib/pkgconfig"
 export PATH="${PATH}:${TARGET}/bin"
 export CPATH="${TARGET}/include"
-export LIBRARY_PATH="${TARGET}/lib"
 export LD_LIBRARY_PATH="${TARGET}/lib"
 export CFLAGS="${FLAGS}"
 export CXXFLAGS="${FLAGS}"
-export LDFLAGS="-Wl,-rpath='\$\$ORIGIN/'"
+export LDFLAGS="-L${TARGET}/lib -Wl,-rpath='\$\$ORIGIN/'"
 
 if [[ $CFLAGS == *"-ffast-math"* ]]; then
   base64 -d <<<"H4sIAESAg14AA41PQQ6DIBC884o5atLqO/qEJkSCAZUUWaNYYuPji9Yam/bQSQjL7OwwC/EnWI4r
@@ -28,7 +27,7 @@ fi
 # Dependency version numbers
 VERSION_ZLIB=1.2.11
 VERSION_FFI=3.3
-VERSION_GLIB=2.64.1
+VERSION_GLIB=2.64.2
 VERSION_XML2=2.9.10
 VERSION_GSF=1.14.47
 VERSION_EXIF=0.6.21
@@ -38,17 +37,17 @@ VERSION_PNG16=1.6.37
 VERSION_WEBP=1.1.0
 VERSION_TIFF=4.1.0
 VERSION_ORC=0.4.31
-VERSION_GETTEXT=0.20.1
+VERSION_GETTEXT=0.20.2
 VERSION_GDKPIXBUF=2.40.0
 VERSION_FREETYPE=2.10.1
 VERSION_EXPAT=2.2.9
 VERSION_FONTCONFIG=2.13.92
-VERSION_HARFBUZZ=2.6.4
-VERSION_PIXMAN=0.38.4
+VERSION_HARFBUZZ=2.6.5
+VERSION_PIXMAN=0.40.0
 VERSION_CAIRO=1.16.0
 VERSION_FRIBIDI=1.0.9
 VERSION_PANGO=1.44.7
-VERSION_SVG=2.48.1
+VERSION_SVG=2.48.4
 VERSION_GIF=5.1.4
 
 # Remove patch version component
@@ -82,9 +81,9 @@ version_latest "gdkpixbuf" "$VERSION_GDKPIXBUF" "9533"
 version_latest "freetype" "$VERSION_FREETYPE" "854"
 version_latest "expat" "$VERSION_EXPAT" "770"
 version_latest "fontconfig" "$VERSION_FONTCONFIG" "827"
-version_latest "harfbuzz" "$VERSION_HARFBUZZ" "1299"
+#version_latest "harfbuzz" "$VERSION_HARFBUZZ" "1299" # v2.6.5 is not yet synchronised, see: https://github.com/harfbuzz/harfbuzz/issues/2333
 version_latest "pixman" "$VERSION_PIXMAN" "3648"
-#version_latest "cairo" "$VERSION_CAIRO" "247" # latest version in release monitoring does not exist
+#version_latest "cairo" "$VERSION_CAIRO" "247" # latest version in release monitoring is unstable
 version_latest "fribidi" "$VERSION_FRIBIDI" "857"
 version_latest "pango" "$VERSION_PANGO" "11783"
 version_latest "svg" "$VERSION_SVG" "5420"
@@ -131,7 +130,6 @@ LDFLAGS=${LDFLAGS/\$/} meson setup _build --default-library=static --buildtype=r
 ninja -C _build
 ninja -C _build install
 
-# TODO: https://gitlab.gnome.org/GNOME/librsvg/issues/224
 mkdir ${DEPS}/xml2
 curl -Ls http://xmlsoft.org/sources/libxml2-${VERSION_XML2}.tar.gz | tar xzC ${DEPS}/xml2 --strip-components=1
 cd ${DEPS}/xml2
@@ -237,7 +235,7 @@ cd ${DEPS}/fontconfig
 make install-strip
 
 mkdir ${DEPS}/harfbuzz
-curl -Ls https://www.freedesktop.org/software/harfbuzz/release/harfbuzz-${VERSION_HARFBUZZ}.tar.xz | tar xJC ${DEPS}/harfbuzz --strip-components=1
+curl -Ls https://github.com/harfbuzz/harfbuzz/releases/download/${VERSION_HARFBUZZ}/harfbuzz-${VERSION_HARFBUZZ}.tar.xz | tar xJC ${DEPS}/harfbuzz --strip-components=1
 cd ${DEPS}/harfbuzz
 sed -i "s/error   \"-Wunused-local-typedefs\"/ignored \"-Wunused-local-typedefs\"/" src/hb.hh
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking
@@ -364,13 +362,12 @@ printf "{\n\
   \"zlib\": \"${VERSION_ZLIB}\"\n\
 }" >versions.json
 
-# Create the tarball
-rm -rf lib
-mv lib-filterd lib
-
 # Add third-party notices
 curl -Os https://raw.githubusercontent.com/kleisauke/libvips-packaging/master/THIRD-PARTY-NOTICES.md
 
+# Create the tarball
+rm -rf lib
+mv lib-filterd lib
 tar chzf /packaging/libvips-${VERSION_VIPS}-${PLATFORM}.tar.gz \
   include \
   lib \

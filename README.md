@@ -5,7 +5,7 @@ for the most common operating systems and CPU architectures.
 
 ## Used by NetVips
 
-During packaging of NetVips, these binaries are fetched as tarballs from 
+During packaging of NetVips, these binaries are fetched as tarballs from
 this repository via HTTPS and stored within the NuGet package (see
 [`Build.cs`](https://github.com/kleisauke/net-vips/blob/master/build/Build.cs)
 for details).
@@ -40,11 +40,9 @@ The output of libvips' [build-win64-mxe](https://github.com/libvips/build-win64-
 
 ### macOS
 
-Uses Travis CI to generate a binary tarball
-of libvips and its dependencies.
+Uses Travis CI to generate a binary tarball of libvips and its dependencies.
 
-Builds dylib files via homebrew
-then modifies their depedency paths to be
+Builds dylib files via homebrew then modifies their depedency paths to be
 the relative `@loader_path` using `install_name_tool`.
 
 The resulting file is transferred to S3 by setting
@@ -52,10 +50,8 @@ The resulting file is transferred to S3 by setting
 
 ## Licences
 
-These scripts are licensed under the terms of the
-[Apache 2.0 Licence](LICENSE).
+These scripts are licensed under the terms of the [Apache 2.0 Licence](LICENSE).
 
-The shared libraries contained in the tarballs
-are distributed under the terms of
-[various licences](THIRD-PARTY-NOTICES.md),
-all of which are compatible with the Apache 2.0 Licence.
+The shared libraries contained in the tarballs are distributed under
+the terms of [various licences](THIRD-PARTY-NOTICES.md), all of which
+are compatible with the Apache 2.0 Licence.

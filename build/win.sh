@@ -4,16 +4,17 @@ set -e
 version_vips_short=${VERSION_VIPS%.[[:digit:]]*}
 
 case "${PLATFORM#*-}" in
-  x64) arch="64" ;;
-  x86) arch="32" ;;
+  x64) bits="64" ;;
+  x86) bits="32" ;;
 esac
 
-mkdir -p /vips
+# Fetch and unzip
+mkdir /vips
+cd /vips
+curl -LOs https://github.com/libvips/build-win64-mxe/releases/download/v${VERSION_VIPS}/vips-dev-w${bits}-web-${VERSION_VIPS}-static.zip
+unzip vips-dev-w${bits}-web-${VERSION_VIPS}-static.zip
 
-# Unzip
-unzip /packaging/build-win64-mxe/$version_vips_short/vips-dev-w$arch-web-${VERSION_VIPS}-static.zip -d /vips
-
-cd /vips/vips-dev-$version_vips_short
+cd /vips/vips-dev-${version_vips_short}
 
 # Move DLLs to the lib directory
 cp bin/*.dll lib/
@@ -21,7 +22,7 @@ cp bin/*.dll lib/
 # Add third-party notices
 curl -Os https://raw.githubusercontent.com/kleisauke/libvips-packaging/master/THIRD-PARTY-NOTICES.md
 
-# Generate tarball
+# Create tarball
 tar czf /packaging/libvips-${VERSION_VIPS}-${PLATFORM}.tar.gz \
   include \
   lib/glib-2.0 \
@@ -31,6 +32,8 @@ tar czf /packaging/libvips-${VERSION_VIPS}-${PLATFORM}.tar.gz \
   lib/*.dll \
   versions.json \
   THIRD-PARTY-NOTICES.md
+  
+# Shrink tarball
 advdef --recompress --shrink-insane /packaging/libvips-${VERSION_VIPS}-${PLATFORM}.tar.gz
 
 # Remove working directories

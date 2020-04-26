@@ -5,7 +5,7 @@ rm -rf lib include
 mkdir lib include
 
 # Use pkg-config to automagically find and copy necessary header files
-for path in $(pkg-config --cflags --static vips libcroco-0.6 | tr ' ' '\n' | grep '^-I' | cut -c 3- | sort | uniq); do
+for path in $(pkg-config --cflags --static vips-cpp | tr ' ' '\n' | grep '^-I' | cut -c 3- | sort | uniq); do
   cp -R ${path}/ include;
 done;
 rm include/gettext-po.h
@@ -50,7 +50,6 @@ chmod 644 lib/*.dylib
 # Generate versions.json
 printf "{\n\
   \"cairo\": \"$(pkg-config --modversion cairo)\",\n\
-  \"croco\": \"$(pkg-config --modversion libcroco-0.6)\",\n\
   \"exif\": \"$(pkg-config --modversion libexif)\",\n\
   \"fontconfig\": \"$(pkg-config --modversion fontconfig)\",\n\
   \"freetype\": \"$(pkg-config --modversion freetype2)\",\n\
@@ -77,7 +76,7 @@ printf "{\n\
 curl -Os https://raw.githubusercontent.com/kleisauke/libvips-packaging/master/THIRD-PARTY-NOTICES.md
 
 # Generate tarball
-TARBALL=libvips-$(pkg-config --modversion vips)-osx-x64.tar.gz
+TARBALL=libvips-$(pkg-config --modversion vips-cpp)-osx-x64.tar.gz
 tar cfz "${TARBALL}" include lib versions.json THIRD-PARTY-NOTICES.md
 advdef --recompress --shrink-insane "${TARBALL}"
 

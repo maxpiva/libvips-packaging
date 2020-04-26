@@ -16,12 +16,11 @@ used under the terms of the following licences:
 | glib          | LGPLv3                                                                                                    |
 | harfbuzz      | MIT Licence                                                                                               |
 | lcms          | MIT Licence                                                                                               |
-| libcroco      | LGPLv3 (macOS only)                                                                                       |
 | libexif       | LGPLv3                                                                                                    |
 | libffi        | MIT Licence                                                                                               |
 | libgsf        | LGPLv3                                                                                                    |
 | libjpeg-turbo | [zlib License, IJG License](https://github.com/libjpeg-turbo/libjpeg-turbo/blob/master/LICENSE.md)        |
-| libpng        | [libpng License](http://www.libpng.org/pub/png/src/libpng-LICENSE.txt)                                    |
+| libpng        | [libpng License](https://github.com/glennrp/libpng/blob/master/LICENSE)                                   |
 | librsvg       | LGPLv3                                                                                                    |
 | libtiff       | [libtiff License](https://libtiff.gitlab.io/libtiff/misc.html) (BSD-like)                                 |
 | libvips       | LGPLv3                                                                                                    |

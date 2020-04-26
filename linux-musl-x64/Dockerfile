@@ -1,7 +1,7 @@
-FROM alpine:3.10
+FROM alpine:3.11
 LABEL maintainer "Kleis Auke Wolthuizen <info@kleisauke.nl>"
 
-# Create Alpine 3.10 (musl 1.1.22) container suitable for building Linux x64 binaries
+# Create Alpine 3.11 (musl 1.1.24) container suitable for building Linux x64 binaries
 
 # Build dependencies
 RUN \
