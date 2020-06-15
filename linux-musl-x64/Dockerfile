@@ -1,5 +1,5 @@
 FROM alpine:3.11
-LABEL maintainer "Kleis Auke Wolthuizen <info@kleisauke.nl>"
+LABEL maintainer="Kleis Auke Wolthuizen <info@kleisauke.nl>"
 
 # Create Alpine 3.11 (musl 1.1.24) container suitable for building Linux x64 binaries
 
@@ -7,27 +7,27 @@ LABEL maintainer "Kleis Auke Wolthuizen <info@kleisauke.nl>"
 RUN \
   apk update && apk upgrade && \
   apk --update --no-cache add \
-    build-base \
-    curl \
-    git \
     autoconf \
     automake \
-    libtool \
-    intltool \
-    shared-mime-info \
-    nasm \
-    gtk-doc \
-    texinfo \
-    gperf \
+    binutils \
+    build-base \
+    cmake \
+    curl \
+    findutils \
+    git \
     glib-dev \
     gobject-introspection-dev \
-    findutils \
+    gperf \
+    gtk-doc \
+    intltool \
     jq \
+    libtool \
     linux-headers \
-    cmake \
-    binutils \
+    nasm \
+    ninja \
     python3 \
-    ninja && \
+    shared-mime-info \
+    texinfo && \
   apk --update --no-cache --repository https://alpine.global.ssl.fastly.net/alpine/edge/community/ add advancecomp && \
   curl https://sh.rustup.rs -sSf | sh -s -- -y && \
   pip3 install meson

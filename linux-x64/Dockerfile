@@ -1,5 +1,5 @@
 FROM centos:7
-LABEL maintainer "Kleis Auke Wolthuizen <info@kleisauke.nl>"
+LABEL maintainer="Kleis Auke Wolthuizen <info@kleisauke.nl>"
 
 # Create CentOS 7 (glibc 2.17) container suitable for building Linux x64 binaries
 
@@ -13,15 +13,15 @@ RUN \
     cmake3 \
     devtoolset-8-gcc \
     devtoolset-8-gcc-c++ \
-    git \
     glib2-devel \
     gobject-introspection-devel \
     gperf \
     gtk-doc \
     jq \
     nasm \
+    ninja-build \
     prelink \
-    ninja-build && \
+    python3 && \
   curl https://sh.rustup.rs -sSf | sh -s -- -y && \
   ln -s /usr/bin/cmake3 /usr/bin/cmake && \
   ln -s /usr/bin/ninja-build /usr/bin/ninja && \

@@ -11,10 +11,10 @@ if [ $# -lt 1 ]; then
   echo "Optionally build for only one PLATFORM, defaults to building for all"
   echo
   echo "Possible values for PLATFORM are:"
-  echo "- win-x64"
-  echo "- win-x86"
   echo "- linux-x64"
   echo "- linux-musl-x64"
+  echo "- win-x64"
+  echo "- win-x86"
   echo
   exit 1
 fi

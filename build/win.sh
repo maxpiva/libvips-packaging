@@ -32,7 +32,7 @@ tar czf /packaging/libvips-${VERSION_VIPS}-${PLATFORM}.tar.gz \
   lib/*.dll \
   versions.json \
   THIRD-PARTY-NOTICES.md
-  
+
 # Shrink tarball
 advdef --recompress --shrink-insane /packaging/libvips-${VERSION_VIPS}-${PLATFORM}.tar.gz
 

@@ -1,5 +1,5 @@
 FROM debian:buster
-LABEL maintainer "Kleis Auke Wolthuizen <info@kleisauke.nl>"
+LABEL maintainer="Kleis Auke Wolthuizen <info@kleisauke.nl>"
 
 # Create Debian-based container suitable for post-processing Windows x64/x86 binaries
 
