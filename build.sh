@@ -15,6 +15,7 @@ if [ $# -lt 1 ]; then
   echo "- linux-musl-x64"
   echo "- win-x64"
   echo "- win-x86"
+  echo "- osx-x64"
   echo
   exit 1
 fi
@@ -23,8 +24,25 @@ version_vips="$1"
 version_vips_short=${version_vips%.[[:digit:]]*}
 platform="${2:-all}"
 
+# macOS
+# Note: we intentionally don't build these binaries inside a Docker container
+if [ $platform = "osx-x64" ]; then
+  export VERSION_VIPS=$version_vips
+  export PLATFORM=$platform
+
+  # Added -fno-stack-check to workaround a stack misalignment bug on macOS 10.15
+  # See:
+  # https://forums.developer.apple.com/thread/121887
+  # https://trac.ffmpeg.org/ticket/8073#comment:12
+  export FLAGS="-O3 -fPIC -fno-stack-check"
+
+  . $PWD/build/osx.sh
+
+  exit 0
+fi
+
 # Is docker available?
-if ! type docker >/dev/null; then
+if ! [ -x "$(command -v docker)" ]; then
   echo "Please install docker"
   exit 1
 fi

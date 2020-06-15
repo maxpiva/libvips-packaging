@@ -40,13 +40,10 @@ The output of libvips' [build-win64-mxe](https://github.com/libvips/build-win64-
 
 ### macOS
 
-Uses Travis CI to generate a binary tarball of libvips and its dependencies.
+Uses a macOS virtual machine hosted by GitHub to compile the shared libraries.
+The dylib files are compiled within the same build script as Linux.
 
-Builds dylib files via homebrew then modifies their depedency paths to be
-the relative `@loader_path` using `install_name_tool`.
-
-The resulting file is transferred to S3 by setting
-[various environment variables](https://docs.travis-ci.com/user/uploading-artifacts).
+Depedency paths are modified to be the relative `@loader_path` using `install_name_tool`.
 
 ## Licences
 

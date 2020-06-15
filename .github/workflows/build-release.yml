@@ -26,16 +26,24 @@ jobs:
         name: upload-url
         path: upload-url.txt
   build:
-    runs-on: 'ubuntu-latest'
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.experimental }}
     needs:
       - 'create-release'
     strategy:
+      fail-fast: false
       matrix:
+        os: [ubuntu-latest]
         platform:
           - 'linux-x64'
           - 'linux-musl-x64'
           - 'win-x64'
           - 'win-x86'
+        experimental: [false]
+        include:
+          - os: macos-latest
+            platform: 'osx-x64'
+            experimental: true
     steps:
     - uses: actions/checkout@v1
     - name: Fetch GitHub Release upload URL
@@ -47,6 +55,18 @@ jobs:
       run: |
         echo "::set-env name=upload_url::$(cat upload-url/upload-url.txt)"
         echo "::set-env name=asset_file_name::libvips-$(cat LIBVIPS_VERSION)-${{ matrix.platform }}.tar.gz"
+    - name: Install dependencies (macOS)
+      run: |
+        pip3 install meson ninja
+        brew install advancecomp automake nasm pkg-config
+      if: matrix.os == 'macos-latest'
+    - name: Setup toolchain (macOS)
+      shell: bash
+      run: |
+        echo "::set-env name=CC::clang"
+        echo "::set-env name=CXX::clang++"
+        echo "::set-env name=MACOSX_DEPLOYMENT_TARGET::10.9"
+      if: matrix.os == 'macos-latest'
     - name: Build ${{ matrix.platform }}
       run: ./build.sh $(cat LIBVIPS_VERSION) ${{ matrix.platform }}
     - name: Upload Release Asset
