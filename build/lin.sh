@@ -45,6 +45,15 @@ if [ "$DARWIN" = true ]; then
   export LDFLAGS+=" -framework CoreServices -framework CoreFoundation -framework Foundation -framework AppKit"
 fi
 
+# Optimise Rust code for binary size
+export RUSTFLAGS="${RUSTFLAGS} -Copt-level=s -Clto=on -Ccodegen-units=1 -Cincremental=false -Cpanic=abort"
+
+# Set a default build target for Cargo if we're not cross-compiling
+# See: https://github.com/rust-lang/cargo/issues/6375#issuecomment-444900324
+if [ -z "${CHOST}" ]; then
+  export CARGO_BUILD_TARGET="${RUST_TARGET}"
+fi
+
 # We don't want to use any native libraries, so unset PKG_CONFIG_PATH
 unset PKG_CONFIG_PATH
 
@@ -59,11 +68,11 @@ fi
 # Dependency version numbers
 VERSION_ZLIB=1.2.11
 VERSION_FFI=3.3
-VERSION_GLIB=2.64.3
+VERSION_GLIB=2.65.0
 VERSION_XML2=2.9.10
 VERSION_GSF=1.14.47
 VERSION_EXIF=0.6.22
-VERSION_LCMS2=2.9
+VERSION_LCMS2=2.11
 VERSION_JPEG=2.0.4
 VERSION_PNG16=1.6.37
 VERSION_WEBP=1.1.0
@@ -151,13 +160,11 @@ curl -Lks https://download.gnome.org/sources/glib/$(without_patch $VERSION_GLIB)
 cd ${DEPS}/glib
 # Disable tests
 sed -i'.bak' "/build_tests =/ s/= .*/= false/" meson.build
-# Build gobject as shared library (we need libgobject-2.0.so.0 for the language bindings)
-sed -i'.bak' "s/library(/shared_library(/" gobject/meson.build
-sed -i'.bak' "/glibconfig_conf.set('GOBJECT_STATIC_COMPILATION', '1')/d" meson.build
 if [ "${PLATFORM%-*}" == "linux-musl" ]; then
-  curl -Ls https://git.alpinelinux.org/aports/plain/main/glib/musl-libintl.patch | patch -p1
+  #curl -Ls https://git.alpinelinux.org/aports/plain/main/glib/musl-libintl.patch | patch -p1 # not compatible with glib 2.65.0
+  curl -Ls https://gist.github.com/kleisauke/f4bda6fc3030cf7b8a4fdb88e2ce8e13/raw/246ac97dfba72ad7607c69eed1810b2354cd2e86/musl-libintl.patch | patch -p1
 fi
-LDFLAGS=${LDFLAGS/\$/} STRIP=${DARWIN:+"strip -x"} meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
+LDFLAGS=${LDFLAGS/\$/} meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
   -Dinternal_pcre=true -Dinstalled_tests=false -Dlibmount=disabled ${DARWIN:+-Dbsymbolic_functions=false}
 ninja -C _build
 ninja -C _build install
@@ -185,7 +192,8 @@ autoreconf -fiv
 make install-strip
 
 mkdir ${DEPS}/lcms2
-curl -Ls https://sourceforge.mirrorservice.org/l/lc/lcms/lcms/${VERSION_LCMS2}/lcms2-${VERSION_LCMS2}.tar.gz | tar xzC ${DEPS}/lcms2 --strip-components=1
+#curl -Ls https://sourceforge.mirrorservice.org/l/lc/lcms/lcms/${VERSION_LCMS2}/lcms2-${VERSION_LCMS2}.tar.gz | tar xzC ${DEPS}/lcms2 --strip-components=1 # 2.11 not yet synchronized
+curl -Ls https://downloads.sourceforge.net/project/lcms/lcms/${VERSION_LCMS2}/lcms2-${VERSION_LCMS2}.tar.gz | tar xzC ${DEPS}/lcms2 --strip-components=1
 cd ${DEPS}/lcms2
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking
 make install-strip
@@ -321,14 +329,11 @@ cd ${DEPS}/svg
 sed -i'.bak' "s/^\(Requires:.*\)/\1 cairo-gobject pangocairo/" librsvg.pc.in
 # Do not include debugging symbols
 sed -i'.bak' "/debug =/ s/= .*/= false/" Cargo.toml
-# Optimise Rust code for binary size
-printf "opt-level = 's'\n\
-lto = true\n\
-codegen-units = 1\n\
-panic = 'abort'\n" >>Cargo.toml
+# LTO optimization does not work for staticlib+rlib compilation
+sed -i'.bak' "s/, \"rlib\"//" librsvg/Cargo.toml
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-introspection --disable-tools --disable-pixbuf-loader ${DARWIN:+--disable-Bsymbolic}
-make install-strip
+make install-strip RUST_TARGET_SUBDIR="${RUST_TARGET}/release"
 
 mkdir ${DEPS}/gif
 curl -Ls https://sourceforge.mirrorservice.org/g/gi/giflib/giflib-${VERSION_GIF}.tar.gz | tar xzC ${DEPS}/gif --strip-components=1

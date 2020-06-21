@@ -29,6 +29,7 @@ platform="${2:-all}"
 if [ $platform = "osx-x64" ]; then
   export VERSION_VIPS=$version_vips
   export PLATFORM=$platform
+  export RUST_TARGET="x86_64-apple-darwin"
 
   # Added -fno-stack-check to workaround a stack misalignment bug on macOS 10.15
   # See:
