@@ -27,9 +27,16 @@ platform="${2:-all}"
 # macOS
 # Note: we intentionally don't build these binaries inside a Docker container
 if [ $platform = "osx-x64" ] && [ "$(uname)" == "Darwin" ]; then
+  # Use Clang provided by XCode
+  export CC="clang"
+  export CXX="clang++"
+
   export VERSION_VIPS=$version_vips
   export PLATFORM=$platform
   export RUST_TARGET="x86_64-apple-darwin"
+
+  # 10.9 should be a good minimal release target
+  export MACOSX_DEPLOYMENT_TARGET="10.9"
 
   # Added -fno-stack-check to workaround a stack misalignment bug on macOS 10.15
   # See:
