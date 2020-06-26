@@ -73,7 +73,7 @@ VERSION_XML2=2.9.10
 VERSION_GSF=1.14.47
 VERSION_EXIF=0.6.22
 VERSION_LCMS2=2.11
-VERSION_JPEG=2.0.4
+VERSION_JPEG=2.0.5
 VERSION_PNG16=1.6.37
 VERSION_WEBP=1.1.0
 VERSION_TIFF=4.1.0
@@ -83,11 +83,11 @@ VERSION_GDKPIXBUF=2.40.0
 VERSION_FREETYPE=2.10.2
 VERSION_EXPAT=2.2.9
 VERSION_FONTCONFIG=2.13.92
-VERSION_HARFBUZZ=2.6.7
+VERSION_HARFBUZZ=2.6.8
 VERSION_PIXMAN=0.40.0
 VERSION_CAIRO=1.16.0
 VERSION_FRIBIDI=1.0.9
-VERSION_PANGO=1.45.2
+VERSION_PANGO=1.45.3
 VERSION_SVG=2.49.2
 VERSION_GIF=5.1.4
 
@@ -355,8 +355,8 @@ make install-strip
 # Cleanup
 rm -rf ${TARGET}/lib/{pkgconfig,.libs,*.la,cmake}
 
-mkdir ${TARGET}/lib-filterd
-mv ${TARGET}/lib/glib-2.0 ${TARGET}/lib-filterd
+mkdir ${TARGET}/lib-filtered
+mv ${TARGET}/lib/glib-2.0 ${TARGET}/lib-filtered
 
 # Pack only the relevant libraries
 # Note: we can't use ldd on Linux, since that can only be executed on the target machine
@@ -400,7 +400,7 @@ function copydeps {
 }
 
 cd ${TARGET}/lib
-copydeps ${VIPS_CPP_DEP} ${TARGET}/lib-filterd
+copydeps ${VIPS_CPP_DEP} ${TARGET}/lib-filtered
 
 # Create JSON file of version numbers
 cd ${TARGET}
@@ -437,7 +437,7 @@ curl -Os https://raw.githubusercontent.com/kleisauke/libvips-packaging/master/TH
 
 # Create the tarball
 rm -rf lib
-mv lib-filterd lib
+mv lib-filtered lib
 tar chzf ${PACKAGE}/libvips-${VERSION_VIPS}-${PLATFORM}.tar.gz \
   include \
   lib \
