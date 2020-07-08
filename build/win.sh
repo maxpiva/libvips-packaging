@@ -33,8 +33,11 @@ tar czf /packaging/libvips-${VERSION_VIPS}-${PLATFORM}.tar.gz \
   versions.json \
   THIRD-PARTY-NOTICES.md
 
-# Shrink tarball
+# Recompress using AdvanceCOMP, ~5% smaller
 advdef --recompress --shrink-insane /packaging/libvips-${VERSION_VIPS}-${PLATFORM}.tar.gz
+
+# Allow tarballs to be read outside container
+chmod 644 /packaging/libvips-${VERSION_VIPS}-${PLATFORM}.tar.gz
 
 # Remove working directories
 rm -rf lib include versions.json THIRD-PARTY-NOTICES.md

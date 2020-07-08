@@ -443,4 +443,9 @@ tar chzf ${PACKAGE}/libvips-${VERSION_VIPS}-${PLATFORM}.tar.gz \
   lib \
   versions.json \
   THIRD-PARTY-NOTICES.md
+
+# Recompress using AdvanceCOMP, ~5% smaller
 advdef --recompress --shrink-insane ${PACKAGE}/libvips-${VERSION_VIPS}-${PLATFORM}.tar.gz
+
+# Allow tarballs to be read outside container
+chmod 644 ${PACKAGE}/libvips-${VERSION_VIPS}-${PLATFORM}.tar.gz

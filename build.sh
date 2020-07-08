@@ -13,6 +13,8 @@ if [ $# -lt 1 ]; then
   echo "Possible values for PLATFORM are:"
   echo "- linux-x64"
   echo "- linux-musl-x64"
+  echo "- linux-arm"
+  echo "- linux-arm64"
   echo "- win-x64"
   echo "- win-x86"
   echo "- osx-x64"
@@ -56,7 +58,7 @@ if ! [ -x "$(command -v docker)" ]; then
 fi
 
 # Update base images
-for baseimage in centos:7 debian:buster alpine:3.11; do
+for baseimage in centos:7 debian:buster debian:bullseye alpine:3.11; do
   docker pull $baseimage
 done
 
@@ -69,8 +71,8 @@ for flavour in win-x64 win-x86; do
   fi
 done
 
-# Linux (x64)
-for flavour in linux-x64 linux-musl-x64; do
+# Linux (x64, ARMv7, ARM64v8)
+for flavour in linux-x64 linux-musl-x64 linux-arm linux-arm64; do
   if [ $platform = "all" ] || [ $platform = $flavour ]; then
     echo "Building $flavour..."
     docker build -t vips-dev-$flavour $flavour
