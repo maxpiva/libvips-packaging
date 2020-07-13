@@ -75,6 +75,7 @@ VERSION_EXIF=0.6.22
 VERSION_LCMS2=2.11
 VERSION_JPEG=2.0.5
 VERSION_PNG16=1.6.37
+VERSION_SPNG=9a08896 # https://github.com/randy408/libspng/commit/9a08896995b29f195078af3972c85e94d2051468
 VERSION_WEBP=1.1.0
 VERSION_TIFF=4.1.0
 VERSION_ORC=0.4.31
@@ -86,9 +87,9 @@ VERSION_FONTCONFIG=2.13.92
 VERSION_HARFBUZZ=2.6.8
 VERSION_PIXMAN=0.40.0
 VERSION_CAIRO=1.16.0
-VERSION_FRIBIDI=1.0.9
+VERSION_FRIBIDI=1.0.10
 VERSION_PANGO=1.45.3
-VERSION_SVG=2.49.2
+VERSION_SVG=2.49.3
 VERSION_GIF=5.1.4
 
 # Remove patch version component
@@ -114,6 +115,7 @@ version_latest "exif" "$VERSION_EXIF" "1607"
 version_latest "lcms2" "$VERSION_LCMS2" "9815"
 version_latest "jpeg" "$VERSION_JPEG" "1648"
 version_latest "png" "$VERSION_PNG16" "1705"
+#version_latest "spng" "$VERSION_SPNG" "24289" # 0.6.0 not yet available
 version_latest "webp" "$VERSION_WEBP" "1761"
 version_latest "tiff" "$VERSION_TIFF" "13521"
 version_latest "orc" "$VERSION_ORC" "2573"
@@ -210,6 +212,15 @@ curl -Ls https://sourceforge.mirrorservice.org/l/li/libpng/libpng16/${VERSION_PN
 cd ${DEPS}/png16
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking
 make install-strip
+
+mkdir ${DEPS}/spng
+#curl -Ls https://github.com/randy408/libspng/archive/v${VERSION_SPNG}.tar.gz | tar xzC ${DEPS}/spng --strip-components=1
+curl -Ls https://github.com/randy408/libspng/tarball/${VERSION_SPNG} | tar xzC ${DEPS}/spng --strip-components=1
+cd ${DEPS}/spng
+meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
+  -Dstatic_zlib=true
+ninja -C _build
+ninja -C _build install
 
 mkdir ${DEPS}/webp
 curl -Ls https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-${VERSION_WEBP}.tar.gz | tar xzC ${DEPS}/webp --strip-components=1
@@ -345,9 +356,9 @@ mkdir ${DEPS}/vips
 curl -Ls https://github.com/libvips/libvips/releases/download/v${VERSION_VIPS}/vips-${VERSION_VIPS}.tar.gz | tar xzC ${DEPS}/vips --strip-components=1
 cd ${DEPS}/vips
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-shared --disable-static --disable-dependency-tracking \
-  --disable-debug --disable-introspection --without-analyze --without-cfitsio --without-fftw --without-heif \
-  --without-imagequant --without-magick --without-matio --without-nifti --without-OpenEXR --without-openslide \
-  --without-pdfium --without-poppler --without-ppm --without-radiance
+  --disable-debug --disable-deprecated --disable-introspection --without-analyze --without-cfitsio --without-fftw \
+  --without-heif --without-imagequant --without-magick --without-matio --without-nifti --without-OpenEXR \
+  --without-openslide --without-pdfium --without-poppler --without-ppm --without-radiance
 # https://docs.fedoraproject.org/en-US/packaging-guidelines/#_removing_rpath
 sed -i'.bak' 's|^hardcode_libdir_flag_spec=.*|hardcode_libdir_flag_spec=""|g' libtool
 make install-strip
