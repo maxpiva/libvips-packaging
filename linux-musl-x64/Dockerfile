@@ -3,6 +3,12 @@ LABEL maintainer="Kleis Auke Wolthuizen <info@kleisauke.nl>"
 
 # Create Alpine 3.11 (musl 1.1.24) container suitable for building Linux x64 binaries
 
+# Path settings
+ENV \
+  RUSTUP_HOME="/usr/local/rustup" \
+  CARGO_HOME="/usr/local/cargo" \
+  PATH="/usr/local/cargo/bin:$PATH"
+
 # Build dependencies
 RUN \
   apk update && apk upgrade && \
@@ -29,14 +35,12 @@ RUN \
     shared-mime-info \
     texinfo && \
   apk --update --no-cache --repository https://alpine.global.ssl.fastly.net/alpine/edge/community/ add advancecomp && \
-  curl https://sh.rustup.rs -sSf | sh -s -- -y && \
+  curl https://sh.rustup.rs -sSf | sh -s -- --no-modify-path --profile minimal -y && \
   pip3 install meson
 
 # Compiler settings
 ENV \
-  PATH="/root/.cargo/bin:$PATH" \
   PLATFORM="linux-musl-x64" \
-  RUST_TARGET="x86_64-unknown-linux-musl" \
   FLAGS="-O3 -fPIC"
 
 # Musl defaults to static libs but we need them to be dynamic for host toolchain.

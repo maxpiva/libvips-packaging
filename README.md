@@ -15,6 +15,8 @@ Finally, the created `.nupkg` are uploaded on NuGet. You can find them here:
 * [NetVips.Native.win-x86](https://www.nuget.org/packages/NetVips.Native.win-x86)
 * [NetVips.Native.linux-x64](https://www.nuget.org/packages/NetVips.Native.linux-x64)
 * [NetVips.Native.linux-musl-x64](https://www.nuget.org/packages/NetVips.Native.linux-musl-x64)
+* [NetVips.Native.linux-arm](https://www.nuget.org/packages/NetVips.Native.linux-arm)
+* [NetVips.Native.linux-arm64](https://www.nuget.org/packages/NetVips.Native.linux-arm64)
 * [NetVips.Native.osx-x64](https://www.nuget.org/packages/NetVips.Native.osx-x64)
 
 The version number of these NuGet packages is in sync with libvips' version number.
@@ -32,6 +34,8 @@ the same shared libraries within multiple containers.
 
 * [x64 glibc](linux-x64/Dockerfile)
 * [x64 musl](linux-musl-x64/Dockerfile)
+* [ARMv7-A](linux-arm/Dockerfile)
+* [ARM64v8-A](linux-arm64/Dockerfile)
 
 ### Windows
 

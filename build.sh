@@ -6,7 +6,7 @@ if [ $# -lt 1 ]; then
   echo "Usage: $0 VERSION [PLATFORM]"
   echo "Build shared libraries for libvips and its dependencies via containers"
   echo
-  echo "Please specify the libvips VERSION, e.g. 8.10.0-beta2"
+  echo "Please specify the libvips VERSION, e.g. 8.10.0-rc1"
   echo
   echo "Optionally build for only one PLATFORM, defaults to building for all"
   echo
@@ -35,7 +35,6 @@ if [ $platform = "osx-x64" ] && [ "$(uname)" == "Darwin" ]; then
 
   export VERSION_VIPS=$version_vips
   export PLATFORM=$platform
-  export RUST_TARGET="x86_64-apple-darwin"
 
   # 10.9 should be a good minimal release target
   export MACOSX_DEPLOYMENT_TARGET="10.9"
@@ -58,7 +57,7 @@ if ! [ -x "$(command -v docker)" ]; then
 fi
 
 # Update base images
-for baseimage in centos:7 debian:buster debian:bullseye alpine:3.11; do
+for baseimage in centos:7 debian:buster alpine:3.11; do
   docker pull $baseimage
 done
 
