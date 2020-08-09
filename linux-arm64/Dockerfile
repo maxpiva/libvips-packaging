@@ -29,7 +29,9 @@ RUN \
     prelink \
     python3-devel \
     texinfo && \
-  curl https://sh.rustup.rs -sSf | sh -s -- --no-modify-path --profile minimal -y && \
+  curl https://sh.rustup.rs -sSf | sh -s -- -y \
+    --no-modify-path \
+    --profile minimal && \
   rustup target add aarch64-unknown-linux-gnu && \
   ln -s /usr/bin/cmake3 /usr/bin/cmake && \
   pip3 install meson

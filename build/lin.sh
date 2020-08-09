@@ -47,9 +47,9 @@ fi
 
 # Run as many parallel jobs as there are available CPU cores
 if [ "$LINUX" = true ]; then
-  export MAKEFLAGS='-j$(nproc)'
+  export MAKEFLAGS="-j$(nproc)"
 elif [ "$DARWIN" = true ]; then
-  export MAKEFLAGS='-j$(sysctl -n hw.logicalcpu)'
+  export MAKEFLAGS="-j$(sysctl -n hw.logicalcpu)"
 fi
 
 # Optimise Rust code for binary size
@@ -74,7 +74,7 @@ fi
 # Dependency version numbers
 VERSION_ZLIB=1.2.11
 VERSION_FFI=3.3
-VERSION_GLIB=2.65.0
+VERSION_GLIB=2.65.1
 VERSION_XML2=2.9.10
 VERSION_GSF=1.14.47
 VERSION_EXIF=0.6.22
@@ -85,16 +85,16 @@ VERSION_SPNG=0.6.0
 VERSION_WEBP=1.1.0
 VERSION_TIFF=4.1.0
 VERSION_ORC=0.4.31
-VERSION_GETTEXT=0.20.2
+VERSION_GETTEXT=0.21
 VERSION_GDKPIXBUF=2.40.0
 VERSION_FREETYPE=2.10.2
 VERSION_EXPAT=2.2.9
 VERSION_FONTCONFIG=2.13.92
-VERSION_HARFBUZZ=2.6.8
+VERSION_HARFBUZZ=2.7.0
 VERSION_PIXMAN=0.40.0
 VERSION_CAIRO=1.16.0
 VERSION_FRIBIDI=1.0.10
-VERSION_PANGO=1.45.3
+VERSION_PANGO=1.45.5
 VERSION_SVG=2.49.3
 VERSION_GIF=5.1.4
 
@@ -164,7 +164,7 @@ cd ${DEPS}/ffi
 make install-strip
 
 mkdir ${DEPS}/glib
-curl -Lks https://download.gnome.org/sources/glib/$(without_patch $VERSION_GLIB)/glib-${VERSION_GLIB}.tar.xz | tar xJC ${DEPS}/glib --strip-components=1
+curl -Ls https://download.gnome.org/sources/glib/$(without_patch $VERSION_GLIB)/glib-${VERSION_GLIB}.tar.xz | tar xJC ${DEPS}/glib --strip-components=1
 cd ${DEPS}/glib
 # Disable tests
 sed -i'.bak' "/build_tests =/ s/= .*/= false/" meson.build
@@ -186,7 +186,7 @@ cd ${DEPS}/xml2
 make install-strip
 
 mkdir ${DEPS}/gsf
-curl -Lks https://download.gnome.org/sources/libgsf/$(without_patch $VERSION_GSF)/libgsf-${VERSION_GSF}.tar.xz | tar xJC ${DEPS}/gsf --strip-components=1
+curl -Ls https://download.gnome.org/sources/libgsf/$(without_patch $VERSION_GSF)/libgsf-${VERSION_GSF}.tar.xz | tar xJC ${DEPS}/gsf --strip-components=1
 cd ${DEPS}/gsf
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --without-bz2 --without-gdk-pixbuf --with-zlib=${TARGET}
@@ -200,7 +200,6 @@ autoreconf -fiv
 make install-strip
 
 mkdir ${DEPS}/lcms2
-#curl -Ls https://sourceforge.mirrorservice.org/l/lc/lcms/lcms/${VERSION_LCMS2}/lcms2-${VERSION_LCMS2}.tar.gz | tar xzC ${DEPS}/lcms2 --strip-components=1 # 2.11 not yet synchronized
 curl -Ls https://downloads.sourceforge.net/project/lcms/lcms/${VERSION_LCMS2}/lcms2-${VERSION_LCMS2}.tar.gz | tar xzC ${DEPS}/lcms2 --strip-components=1
 cd ${DEPS}/lcms2
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking
@@ -215,6 +214,7 @@ make install/strip
 
 mkdir ${DEPS}/png16
 curl -Ls https://sourceforge.mirrorservice.org/l/li/libpng/libpng16/${VERSION_PNG16}/libpng-${VERSION_PNG16}.tar.xz | tar xJC ${DEPS}/png16 --strip-components=1
+#curl -Ls https://downloads.sourceforge.net/project/libpng/libpng16/${VERSION_PNG16}/libpng-${VERSION_PNG16}.tar.xz | tar xJC ${DEPS}/png16 --strip-components=1
 cd ${DEPS}/png16
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking
 make install-strip
@@ -222,6 +222,7 @@ make install-strip
 mkdir ${DEPS}/spng
 curl -Ls https://github.com/randy408/libspng/archive/v${VERSION_SPNG}.tar.gz | tar xzC ${DEPS}/spng --strip-components=1
 cd ${DEPS}/spng
+patch -p1 < ${PACKAGE}/build/patches/libspng-0.6-fixes.patch
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
   -Dstatic_zlib=true
 ninja -C _build
@@ -252,7 +253,7 @@ ninja -C _build
 ninja -C _build install
 
 mkdir ${DEPS}/gdkpixbuf
-curl -Lks https://download.gnome.org/sources/gdk-pixbuf/$(without_patch $VERSION_GDKPIXBUF)/gdk-pixbuf-${VERSION_GDKPIXBUF}.tar.xz | tar xJC ${DEPS}/gdkpixbuf --strip-components=1
+curl -Ls https://download.gnome.org/sources/gdk-pixbuf/$(without_patch $VERSION_GDKPIXBUF)/gdk-pixbuf-${VERSION_GDKPIXBUF}.tar.xz | tar xJC ${DEPS}/gdkpixbuf --strip-components=1
 cd ${DEPS}/gdkpixbuf
 # Disable tests and thumbnailer
 sed -i'.bak' "/subdir('tests')/{N;d;}" meson.build
@@ -274,7 +275,7 @@ mkdir ${DEPS}/freetype
 curl -Ls https://download.savannah.gnu.org/releases/freetype/freetype-${VERSION_FREETYPE}.tar.xz | tar xJC ${DEPS}/freetype --strip-components=1
 cd ${DEPS}/freetype
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
-  --without-bzip2
+  --without-bzip2 --without-png
 make install
 
 mkdir ${DEPS}/expat
@@ -292,12 +293,14 @@ cd ${DEPS}/fontconfig
 make install-strip
 
 mkdir ${DEPS}/harfbuzz
-curl -Ls https://github.com/harfbuzz/harfbuzz/releases/download/${VERSION_HARFBUZZ}/harfbuzz-${VERSION_HARFBUZZ}.tar.xz | tar xJC ${DEPS}/harfbuzz --strip-components=1
+curl -Ls https://github.com/harfbuzz/harfbuzz/archive/${VERSION_HARFBUZZ}.tar.gz | tar xzC ${DEPS}/harfbuzz --strip-components=1
 cd ${DEPS}/harfbuzz
-sed -i'.bak' "s/error   \"-Wunused-local-typedefs\"/ignored \"-Wunused-local-typedefs\"/" src/hb.hh
-./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
-  --without-icu ${DARWIN:+--with-coretext}
-make install-strip
+# Disable utils
+sed -i'.bak' "/subdir('util')/d" meson.build
+LDFLAGS=${LDFLAGS/\$/} meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
+  -Dicu=disabled -Dtests=disabled -Dintrospection=disabled -Ddocs=disabled -Dbenchmark=disabled ${DARWIN:+-Dcoretext=enabled}
+ninja -C _build
+ninja -C _build install
 
 mkdir ${DEPS}/pixman
 curl -Ls https://cairographics.org/releases/pixman-${VERSION_PIXMAN}.tar.gz | tar xzC ${DEPS}/pixman --strip-components=1
@@ -330,7 +333,7 @@ ninja -C _build
 ninja -C _build install
 
 mkdir ${DEPS}/pango
-curl -Lks https://download.gnome.org/sources/pango/$(without_patch $VERSION_PANGO)/pango-${VERSION_PANGO}.tar.xz | tar xJC ${DEPS}/pango --strip-components=1
+curl -Ls https://download.gnome.org/sources/pango/$(without_patch $VERSION_PANGO)/pango-${VERSION_PANGO}.tar.xz | tar xJC ${DEPS}/pango --strip-components=1
 cd ${DEPS}/pango
 # Disable utils, examples, tests and tools
 sed -i'.bak' "/subdir('utils')/{N;N;N;d;}" meson.build
@@ -340,7 +343,7 @@ ninja -C _build
 ninja -C _build install
 
 mkdir ${DEPS}/svg
-curl -Lks https://download.gnome.org/sources/librsvg/$(without_patch $VERSION_SVG)/librsvg-${VERSION_SVG}.tar.xz | tar xJC ${DEPS}/svg --strip-components=1
+curl -Ls https://download.gnome.org/sources/librsvg/$(without_patch $VERSION_SVG)/librsvg-${VERSION_SVG}.tar.xz | tar xJC ${DEPS}/svg --strip-components=1
 cd ${DEPS}/svg
 sed -i'.bak' "s/^\(Requires:.*\)/\1 cairo-gobject pangocairo/" librsvg.pc.in
 # Do not include debugging symbols
@@ -353,6 +356,7 @@ make install-strip
 
 mkdir ${DEPS}/gif
 curl -Ls https://sourceforge.mirrorservice.org/g/gi/giflib/giflib-${VERSION_GIF}.tar.gz | tar xzC ${DEPS}/gif --strip-components=1
+#curl -Ls https://downloads.sourceforge.net/project/giflib/giflib-${VERSION_GIF}.tar.gz | tar xzC ${DEPS}/gif --strip-components=1
 cd ${DEPS}/gif
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking
 make install-strip

@@ -28,7 +28,9 @@ RUN \
     ninja-build \
     prelink \
     python3 && \
-  curl https://sh.rustup.rs -sSf | sh -s -- --no-modify-path --profile minimal -y && \
+  curl https://sh.rustup.rs -sSf | sh -s -- -y \
+    --no-modify-path \
+    --profile minimal && \
   ln -s /usr/bin/cmake3 /usr/bin/cmake && \
   pip3 install meson
 

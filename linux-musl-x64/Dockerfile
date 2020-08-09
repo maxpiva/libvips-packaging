@@ -35,7 +35,9 @@ RUN \
     shared-mime-info \
     texinfo && \
   apk --update --no-cache --repository https://alpine.global.ssl.fastly.net/alpine/edge/community/ add advancecomp && \
-  curl https://sh.rustup.rs -sSf | sh -s -- --no-modify-path --profile minimal -y && \
+  curl https://sh.rustup.rs -sSf | sh -s -- -y \
+    --no-modify-path \
+    --profile minimal && \
   pip3 install meson
 
 # Compiler settings
