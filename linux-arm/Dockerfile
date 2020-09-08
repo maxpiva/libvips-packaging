@@ -32,8 +32,6 @@ RUN \
   curl https://sh.rustup.rs -sSf | sh -s -- -y \
     --no-modify-path \
     --profile minimal && \
-  # Downgrade to 1.43.0, see: https://github.com/rust-lang/compiler-builtins/issues/353
-  rustup toolchain install 1.43.0 && rustup default 1.43.0 && \
   rustup target add arm-unknown-linux-gnueabihf && \
   ln -s /usr/bin/cmake3 /usr/bin/cmake && \
   pip3 install meson

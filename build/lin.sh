@@ -60,6 +60,11 @@ export CARGO_PROFILE_RELEASE_LTO=true
 export CARGO_PROFILE_RELEASE_OPT_LEVEL=s
 export CARGO_PROFILE_RELEASE_PANIC=abort
 
+# Workaround for https://github.com/rust-lang/compiler-builtins/issues/353
+if [ "$PLATFORM" == "linux-arm" ]; then
+  export LDFLAGS+=" -Wl,--allow-multiple-definition"
+fi
+
 # We don't want to use any native libraries, so unset PKG_CONFIG_PATH
 unset PKG_CONFIG_PATH
 
@@ -74,7 +79,7 @@ fi
 # Dependency version numbers
 VERSION_ZLIB=1.2.11
 VERSION_FFI=3.3
-VERSION_GLIB=2.65.2
+VERSION_GLIB=2.65.3
 VERSION_XML2=2.9.10
 VERSION_GSF=1.14.47
 VERSION_EXIF=0.6.22
@@ -90,12 +95,12 @@ VERSION_GDKPIXBUF=2.40.0
 VERSION_FREETYPE=2.10.2
 VERSION_EXPAT=2.2.9
 VERSION_FONTCONFIG=2.13.92
-VERSION_HARFBUZZ=2.7.1
+VERSION_HARFBUZZ=2.7.2
 VERSION_PIXMAN=0.40.0
 VERSION_CAIRO=1.16.0
 VERSION_FRIBIDI=1.0.10
 VERSION_PANGO=1.46.1
-VERSION_SVG=2.49.4
+VERSION_SVG=2.49.5
 VERSION_GIF=5.1.4
 
 # Remove patch version component

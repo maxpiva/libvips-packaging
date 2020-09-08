@@ -11,13 +11,13 @@ $category > $option = $value -- $comment
 
 - Path and misc options > Prefix directory = /x-tools/${CT\_TARGET}
 - Target options > Target Architecture = arm
+- Target options > Default instruction set mode = thumb
 - Target options > Suffix to the arch-part = v7
 - Target options > Architecture level = armv7-a
 - Target options > Use specific FPU = neon-vfpv4
 - Target options > Floating point = hardware (FPU)
-- Target options > Default instruction set mode = thumb
 - Operating System > Target OS = linux
 - Operating System > Version of Linux = 3.2.101 -- Debian Wheezy kernel
 - C-library > Version of glibc = 2.17
-- C compiler > Version of GCC = 9.2.0
+- C compiler > Version of GCC = 9.3.0
 - C compiler > C++ = ENABLE

@@ -15,5 +15,5 @@ $category > $option = $value -- $comment
 - Operating System > Target OS = linux
 - Operating System > Version of Linux = 4.4.214 -- Ubuntu Xenial kernel
 - C-library > Version of glibc = 2.17 -- aarch64 support was introduced in this version
-- C compiler > Version of GCC = 9.2.0
+- C compiler > Version of GCC = 9.3.0
 - C compiler > C++ = ENABLE
