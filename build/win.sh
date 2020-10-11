@@ -8,10 +8,13 @@ case "${PLATFORM#*-}" in
   x86) bits="32" ;;
 esac
 
+# Common options for curl
+CURL="curl --silent --location --retry 3 --retry-max-time 30"
+
 # Fetch and unzip
 mkdir /vips
 cd /vips
-curl -LOs https://github.com/libvips/build-win64-mxe/releases/download/v${VERSION_VIPS}/vips-dev-w${bits}-web-${VERSION_VIPS}-static.zip
+$CURL -O https://github.com/libvips/build-win64-mxe/releases/download/v${VERSION_VIPS}/vips-dev-w${bits}-web-${VERSION_VIPS}-static.zip
 unzip vips-dev-w${bits}-web-${VERSION_VIPS}-static.zip
 
 cd /vips/vips-dev-${version_vips_short}
@@ -20,7 +23,7 @@ cd /vips/vips-dev-${version_vips_short}
 cp bin/*.dll lib/
 
 # Add third-party notices
-curl -Os https://raw.githubusercontent.com/kleisauke/libvips-packaging/master/THIRD-PARTY-NOTICES.md
+$CURL -O https://raw.githubusercontent.com/kleisauke/libvips-packaging/master/THIRD-PARTY-NOTICES.md
 
 # Create tarball
 tar czf /packaging/libvips-${VERSION_VIPS}-${PLATFORM}.tar.gz \
