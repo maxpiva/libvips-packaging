@@ -32,7 +32,7 @@ RUN \
     --no-modify-path \
     --profile minimal && \
   ln -s /usr/bin/cmake3 /usr/bin/cmake && \
-  pip3 install meson
+  pip3 install meson==0.55.3
 
 # Compiler settings
 ENV \

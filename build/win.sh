@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 set -e
 
-version_vips_short=${VERSION_VIPS%.[[:digit:]]*}
-
 case "${PLATFORM#*-}" in
-  x64) bits="64" ;;
-  x86) bits="32" ;;
+  x64) ARCH=w64 ;;
+  x86) ARCH=w32 ;;
+  arm64) ARCH=arm64 ;;
 esac
+
+VERSION_VIPS_SHORT=${VERSION_VIPS%.[[:digit:]]*}
 
 # Common options for curl
 CURL="curl --silent --location --retry 3 --retry-max-time 30"
@@ -14,10 +15,14 @@ CURL="curl --silent --location --retry 3 --retry-max-time 30"
 # Fetch and unzip
 mkdir /vips
 cd /vips
-$CURL -O https://github.com/libvips/build-win64-mxe/releases/download/v${VERSION_VIPS}/vips-dev-w${bits}-web-${VERSION_VIPS}-static.zip
-unzip vips-dev-w${bits}-web-${VERSION_VIPS}-static.zip
 
-cd /vips/vips-dev-${version_vips_short}
+FILENAME="vips-dev-${ARCH}-web-${VERSION_VIPS}-static.zip"
+URL="https://github.com/libvips/build-win64-mxe/releases/download/v${VERSION_VIPS}-build2/${FILENAME}"
+echo "Downloading $URL"
+$CURL -O $URL
+unzip $FILENAME
+
+cd /vips/vips-dev-${VERSION_VIPS_SHORT}
 
 # Move DLLs to the lib directory
 cp bin/*.dll lib/

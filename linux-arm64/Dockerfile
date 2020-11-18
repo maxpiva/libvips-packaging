@@ -34,7 +34,7 @@ RUN \
     --profile minimal && \
   rustup target add aarch64-unknown-linux-gnu && \
   ln -s /usr/bin/cmake3 /usr/bin/cmake && \
-  pip3 install meson
+  pip3 install meson==0.55.3
 
 # Download and install the latest version of crosstool-ng
 RUN \

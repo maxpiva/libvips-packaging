@@ -17,6 +17,7 @@ if [ $# -lt 1 ]; then
   echo "- linux-arm64"
   echo "- win-x64"
   echo "- win-x86"
+  echo "- win-arm64"
   echo "- osx-x64"
   echo
   exit 1
@@ -61,8 +62,8 @@ for baseimage in centos:7 debian:buster alpine:3.11; do
   docker pull $baseimage
 done
 
-# Windows (x64 and x86)
-for flavour in win-x64 win-x86; do
+# Windows (x64, x86 and arm64)
+for flavour in win-x64 win-x86 win-arm64; do
   if [ $platform = "all" ] || [ $platform = $flavour ]; then
     echo "Building $flavour..."
     docker build -t vips-dev-win32 win32
@@ -70,7 +71,7 @@ for flavour in win-x64 win-x86; do
   fi
 done
 
-# Linux (x64, ARMv7, ARM64v8)
+# Linux (x64, ARMv7 and ARM64v8)
 for flavour in linux-x64 linux-musl-x64 linux-arm linux-arm64; do
   if [ $platform = "all" ] || [ $platform = $flavour ]; then
     echo "Building $flavour..."

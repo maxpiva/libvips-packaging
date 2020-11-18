@@ -82,27 +82,27 @@ CURL="curl --silent --location --retry 3 --retry-max-time 30"
 # Dependency version numbers
 VERSION_ZLIB=1.2.11
 VERSION_FFI=3.3
-VERSION_GLIB=2.66.1
+VERSION_GLIB=2.67.0
 VERSION_XML2=2.9.10
 VERSION_GSF=1.14.47
 VERSION_EXIF=0.6.22
 VERSION_LCMS2=2.11
-VERSION_JPEG=2.0.5
+VERSION_JPEG=2.0.6
 VERSION_PNG16=1.6.37
 VERSION_SPNG=0.6.1
 VERSION_WEBP=1.1.0
 VERSION_TIFF=4.1.0
 VERSION_ORC=0.4.32
 VERSION_GETTEXT=0.21
-VERSION_GDKPIXBUF=2.40.0
-VERSION_FREETYPE=2.10.3
+VERSION_GDKPIXBUF=2.42.0
+VERSION_FREETYPE=2.10.4
 VERSION_EXPAT=2.2.10
 VERSION_FONTCONFIG=2.13.92
 VERSION_HARFBUZZ=2.7.2
 VERSION_PIXMAN=0.40.0
 VERSION_CAIRO=1.16.0
 VERSION_FRIBIDI=1.0.10
-VERSION_PANGO=1.47.0
+VERSION_PANGO=1.48.0
 VERSION_SVG=2.50.1
 VERSION_GIF=5.1.4
 VERSION_AOM=2.0.0
@@ -172,7 +172,7 @@ mkdir ${DEPS}/ffi
 $CURL https://github.com/libffi/libffi/releases/download/v${VERSION_FFI}/libffi-${VERSION_FFI}.tar.gz | tar xzC ${DEPS}/ffi --strip-components=1
 cd ${DEPS}/ffi
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
-  --disable-builddir --disable-multi-os-directory --disable-raw-api
+  --disable-builddir --disable-multi-os-directory --disable-raw-api --disable-structs
 make install-strip
 
 mkdir ${DEPS}/glib
@@ -185,7 +185,7 @@ if [ "${PLATFORM%-*}" == "linux-musl" ]; then
   $CURL https://gist.github.com/kleisauke/f4bda6fc3030cf7b8a4fdb88e2ce8e13/raw/246ac97dfba72ad7607c69eed1810b2354cd2e86/musl-libintl.patch | patch -p1
 fi
 LDFLAGS=${LDFLAGS/\$/} meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
-  -Dinternal_pcre=true -Dinstalled_tests=false -Dlibmount=disabled ${DARWIN:+-Dbsymbolic_functions=false}
+  -Dinternal_pcre=true -Dinstalled_tests=false -Dlibmount=disabled -Dlibelf=disabled ${DARWIN:+-Dbsymbolic_functions=false}
 ninja -C _build
 ninja -C _build install
 
@@ -289,12 +289,12 @@ sed -i'.bak' "/subdir('tests')/{N;d;}" meson.build
 # Disable the built-in loaders for BMP, GIF, ICO, PNM, XPM, XBM, TGA, ICNS and QTIF
 sed -i'.bak' "/\[ 'bmp'/{N;N;N;d;}" gdk-pixbuf/meson.build
 sed -i'.bak' "/\[ 'pnm'/d" gdk-pixbuf/meson.build
-sed -i'.bak' "/\[ 'xpm'/{N;N;N;N;N;d;}" gdk-pixbuf/meson.build
+sed -i'.bak' "/\[ 'xpm'/{N;N;N;N;d;}" gdk-pixbuf/meson.build
 # Ensure meson can find libjpeg when cross-compiling
 sed -i'.bak' "s/has_header('jpeglib.h')/has_header('jpeglib.h', args: '-I\/target\/include')/g" meson.build
 sed -i'.bak' "s/cc.find_library('jpeg'/dependency('libjpeg'/g" meson.build
 LDFLAGS=${LDFLAGS/\$/} meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
-  -Dtiff=false -Dx11=false -Dgir=false -Dinstalled_tests=false -Dgio_sniffing=false -Dman=false -Dbuiltin_loaders=png,jpeg
+  -Dtiff=false -Dintrospection=disabled -Dinstalled_tests=false -Dgio_sniffing=false -Dman=false -Dbuiltin_loaders=png,jpeg
 ninja -C _build
 ninja -C _build install
 # Include libjpeg and libpng as a dependency of gdk-pixbuf, see: https://gitlab.gnome.org/GNOME/gdk-pixbuf/merge_requests/50
@@ -368,7 +368,7 @@ cd ${DEPS}/pango
 # Disable utils, examples, tests and tools
 sed -i'.bak' "/subdir('utils')/{N;N;N;d;}" meson.build
 LDFLAGS=${LDFLAGS/\$/} meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
-  -Dgtk_doc=false -Dintrospection=false -Duse_fontconfig=true
+  -Dgtk_doc=false -Dintrospection=disabled -Dfontconfig=enabled
 ninja -C _build
 ninja -C _build install
 
