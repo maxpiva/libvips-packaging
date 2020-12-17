@@ -94,19 +94,19 @@ VERSION_WEBP=1.1.0
 VERSION_TIFF=4.1.0
 VERSION_ORC=0.4.32
 VERSION_GETTEXT=0.21
-VERSION_GDKPIXBUF=2.42.0
+VERSION_GDKPIXBUF=2.42.2
 VERSION_FREETYPE=2.10.4
 VERSION_EXPAT=2.2.10
-VERSION_FONTCONFIG=2.13.92
+VERSION_FONTCONFIG=2.13.93
 VERSION_HARFBUZZ=2.7.2
 VERSION_PIXMAN=0.40.0
-VERSION_CAIRO=1.16.0
+VERSION_CAIRO=1.17.4
 VERSION_FRIBIDI=1.0.10
 VERSION_PANGO=1.48.0
-VERSION_SVG=2.50.1
+VERSION_SVG=2.50.2
 VERSION_GIF=5.1.4
-VERSION_AOM=2.0.0
-VERSION_HEIF=1.9.1
+VERSION_AOM=2.0.1
+VERSION_HEIF=1.10.0
 
 # Remove patch version component
 without_patch() {
@@ -129,7 +129,7 @@ version_latest "xml2" "$VERSION_XML2" "1783"
 version_latest "gsf" "$VERSION_GSF" "1980"
 version_latest "exif" "$VERSION_EXIF" "1607"
 version_latest "lcms2" "$VERSION_LCMS2" "9815"
-version_latest "jpeg" "$VERSION_JPEG" "1648"
+#version_latest "jpeg" "$VERSION_JPEG" "1648" # latest version in release monitoring is beta
 version_latest "png" "$VERSION_PNG16" "1705"
 version_latest "spng" "$VERSION_SPNG" "24289"
 version_latest "webp" "$VERSION_WEBP" "1761"
@@ -142,7 +142,7 @@ version_latest "expat" "$VERSION_EXPAT" "770"
 version_latest "fontconfig" "$VERSION_FONTCONFIG" "827"
 version_latest "harfbuzz" "$VERSION_HARFBUZZ" "1299"
 version_latest "pixman" "$VERSION_PIXMAN" "3648"
-#version_latest "cairo" "$VERSION_CAIRO" "247" # latest version in release monitoring is unstable
+version_latest "cairo" "$VERSION_CAIRO" "247"
 version_latest "fribidi" "$VERSION_FRIBIDI" "857"
 version_latest "pango" "$VERSION_PANGO" "11783"
 version_latest "svg" "$VERSION_SVG" "5420"
@@ -343,7 +343,7 @@ ninja -C _build
 ninja -C _build install
 
 mkdir ${DEPS}/cairo
-$CURL https://cairographics.org/releases/cairo-${VERSION_CAIRO}.tar.xz | tar xJC ${DEPS}/cairo --strip-components=1
+$CURL https://cairographics.org/snapshots/cairo-${VERSION_CAIRO}.tar.xz | tar xJC ${DEPS}/cairo --strip-components=1
 cd ${DEPS}/cairo
 sed -i'.bak' "s/^\(Libs:.*\)/\1 @CAIRO_NONPKGCONFIG_LIBS@/" src/cairo.pc.in
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
