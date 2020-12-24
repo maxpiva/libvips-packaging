@@ -40,6 +40,13 @@ if [ "$LINUX" = true ]; then
   export LDFLAGS+=" -Wl,-rpath='\$\$ORIGIN/'"
 fi
 
+# The ARM64v8 and ARMv7 binaries needs to be statically linked against libstdc++, since
+# libstdc++.so.6.0.28 (GLIBCXX_3.4.26) provided by GCC 10.2 isn't available on every OS
+# Note: this is handled in devtoolset in a much better way, see: https://stackoverflow.com/a/19340023/10952119
+if [[ $PLATFORM == "linux-arm"* ]]; then
+  export LDFLAGS+=" -static-libstdc++"
+fi
+
 # On macOS, we need to explicitly link against the system libraries
 if [ "$DARWIN" = true ]; then
   export LDFLAGS+=" -framework CoreServices -framework CoreFoundation -framework Foundation -framework AppKit"
@@ -61,6 +68,7 @@ export CARGO_PROFILE_RELEASE_OPT_LEVEL=s
 export CARGO_PROFILE_RELEASE_PANIC=abort
 
 # Workaround for https://github.com/rust-lang/compiler-builtins/issues/353
+# (applies only to ARMv7)
 if [ "$PLATFORM" == "linux-arm" ]; then
   export LDFLAGS+=" -Wl,--allow-multiple-definition"
 fi
@@ -233,6 +241,10 @@ $CURL https://github.com/strukturag/libheif/releases/download/v${VERSION_HEIF}/l
 cd ${DEPS}/heif
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-gdk-pixbuf --disable-go --disable-examples --disable-libde265 --disable-x265
+if [[ $PLATFORM == "linux-arm"* ]]; then
+  # Remove -lstdc++ from Libs.private, it won't work with -static-libstdc++
+  sed -i'.bak' '/^Libs.private:/s/-lstdc++//g' libheif.pc
+fi
 make install-strip
 
 mkdir ${DEPS}/jpeg
@@ -311,7 +323,7 @@ $CURL https://github.com/libexpat/libexpat/releases/download/R_${VERSION_EXPAT//
 cd ${DEPS}/expat
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared \
   --disable-dependency-tracking --without-xmlwf --without-docbook --without-getrandom --without-sys-getrandom
-make install
+make install-strip
 
 mkdir ${DEPS}/fontconfig
 $CURL https://www.freedesktop.org/software/fontconfig/release/fontconfig-${VERSION_FONTCONFIG}.tar.xz | tar xJC ${DEPS}/fontconfig --strip-components=1
@@ -399,6 +411,17 @@ PKG_CONFIG="pkg-config --static" ./configure --host=${CHOST} --prefix=${TARGET} 
   ${LINUX:+LDFLAGS="$LDFLAGS -Wl,-Bsymbolic-functions"}
 # https://docs.fedoraproject.org/en-US/packaging-guidelines/#_removing_rpath
 sed -i'.bak' 's|^hardcode_libdir_flag_spec=.*|hardcode_libdir_flag_spec=""|g' libtool
+if [[ $PLATFORM == "linux-arm"* ]]; then
+  # Remove -nostdlib from linker commandline options (i.e. archive_cmds
+  # and archive_expsym_cmds), it won't work with -static-libstdc++
+  sed -i'.bak' 's/-nostdlib//g' libtool
+  # Standard system libraries are used when -nostdlib is not specified,
+  # so we can safely comment out {pre,post}dep_objects and postdeps
+  # See: https://src.fedoraproject.org/rpms/mesa/c/cf99e4b75f8f817f7cc610b266b907d4eecca841
+  sed -i'.bak' 's/^predep_objects=.*$/#&/' libtool
+  sed -i'.bak' 's/^postdep_objects=.*$/#&/' libtool
+  sed -i'.bak' 's/^postdeps=.*$/#&/' libtool
+fi
 make install-strip
 
 # Cleanup
@@ -449,6 +472,10 @@ function copydeps {
 }
 
 cd ${TARGET}/lib
+if [[ $PLATFORM == "linux-arm"* ]]; then
+  # Check that we really didn't link libstdc++ dynamically
+  readelf -d ${VIPS_CPP_DEP} | grep -q libstdc && echo "$VIPS_CPP_DEP is dynamically linked against libstdc++" && exit 1
+fi
 copydeps ${VIPS_CPP_DEP} ${TARGET}/lib-filtered
 
 # Create JSON file of version numbers
