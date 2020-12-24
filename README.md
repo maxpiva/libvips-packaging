@@ -13,6 +13,7 @@ for details).
 Finally, the created `.nupkg` are uploaded on NuGet. You can find them here:
 * [NetVips.Native.win-x64](https://www.nuget.org/packages/NetVips.Native.win-x64)
 * [NetVips.Native.win-x86](https://www.nuget.org/packages/NetVips.Native.win-x86)
+* [NetVips.Native.win-arm64](https://www.nuget.org/packages/NetVips.Native.win-arm64)
 * [NetVips.Native.linux-x64](https://www.nuget.org/packages/NetVips.Native.linux-x64)
 * [NetVips.Native.linux-musl-x64](https://www.nuget.org/packages/NetVips.Native.linux-musl-x64)
 * [NetVips.Native.linux-arm](https://www.nuget.org/packages/NetVips.Native.linux-arm)
