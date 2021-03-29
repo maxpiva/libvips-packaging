@@ -32,12 +32,12 @@ RUN \
     --no-modify-path \
     --profile minimal && \
   ln -s /usr/bin/cmake3 /usr/bin/cmake && \
-  pip3 install meson==0.55.3
+  pip3 install meson==0.56.2
 
 # Compiler settings
 ENV \
   PLATFORM="linux-x64" \
-  FLAGS="-O3 -fPIC" \
+  FLAGS="-march=westmere" \
   MESON="--cross-file=/root/meson.ini"
 
 COPY Toolchain.cmake /root/

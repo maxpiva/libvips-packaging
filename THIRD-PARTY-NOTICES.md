@@ -21,7 +21,7 @@ used under the terms of the following licences:
 | libffi        | MIT Licence                                                                                               |
 | libgsf        | LGPLv3                                                                                                    |
 | libheif       | LGPLv3                                                                                                    |
-| libjpeg-turbo | [zlib License, IJG License](https://github.com/libjpeg-turbo/libjpeg-turbo/blob/master/LICENSE.md)        |
+| libimagequant | [BSD 2-Clause](https://github.com/lovell/libimagequant/blob/main/COPYRIGHT)                               |
 | libpng        | [libpng License](https://github.com/glennrp/libpng/blob/master/LICENSE)                                   |
 | librsvg       | LGPLv3                                                                                                    |
 | libspng       | [BSD 2-Clause, libpng License](https://github.com/randy408/libspng/blob/master/LICENSE)                   |
@@ -29,10 +29,11 @@ used under the terms of the following licences:
 | libvips       | LGPLv3                                                                                                    |
 | libwebp       | New BSD License                                                                                           |
 | libxml2       | MIT Licence                                                                                               |
+| mozjpeg       | [zlib License, IJG License, BSD-3-Clause](https://github.com/mozilla/mozjpeg/blob/master/LICENSE.md)      |
 | orc           | [orc License](https://gitlab.freedesktop.org/gstreamer/orc/blob/master/COPYING) (BSD-like)                |
 | pango         | LGPLv3                                                                                                    |
 | pixman        | MIT Licence                                                                                               |
-| zlib          | [zlib Licence](https://github.com/madler/zlib/blob/master/zlib.h)                                         |
+| zlib-ng       | [zlib Licence](https://github.com/zlib-ng/zlib-ng/blob/develop/LICENSE.md)                                |
 
 Use of libraries under the terms of the LGPLv3 is via the
 "any later version" clause of the LGPLv2 or LGPLv2.1.

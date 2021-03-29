@@ -34,7 +34,7 @@ RUN \
     --profile minimal && \
   rustup target add arm-unknown-linux-gnueabihf && \
   ln -s /usr/bin/cmake3 /usr/bin/cmake && \
-  pip3 install meson==0.55.3
+  pip3 install meson==0.56.2
 
 # Download and install the latest version of crosstool-ng
 RUN \
@@ -74,7 +74,7 @@ ENV \
   PLATFORM="linux-arm" \
   CHOST="arm-linux-gnueabihf" \
   RUST_TARGET="arm-unknown-linux-gnueabihf" \
-  FLAGS="-marm -march=armv7-a -mfpu=neon-vfpv4 -mfloat-abi=hard -O3 -fPIC -D_GLIBCXX_USE_CXX11_ABI=0" \
+  FLAGS="-marm -march=armv7-a -mfpu=neon-vfpv4 -mfloat-abi=hard" \
   MESON="--cross-file=/root/meson.ini"
 
 COPY Toolchain.cmake /root/

@@ -16,13 +16,24 @@ case ${PLATFORM} in
     DEPS=$PWD/deps
     TARGET=$PWD/target
     PACKAGE=$PWD
-    ROOT=$PWD/osx-x64
+    ROOT=$PWD/$PLATFORM
     VIPS_CPP_DEP=libvips-cpp.42.dylib
     ;;
 esac
 
 mkdir ${DEPS}
 mkdir ${TARGET}
+
+# Default optimisation level is for binary size (-Os)
+# Overriden to performance (-O3) for select dependencies that benefit
+export FLAGS+=" -Os -fPIC"
+
+# Force "new" C++11 ABI compliance
+# Remove async exception unwind/backtrace tables
+# Allow linker to remove unused sections
+if [ "$LINUX" = true ]; then
+  export FLAGS+=" -D_GLIBCXX_USE_CXX11_ABI=1 -fno-asynchronous-unwind-tables -ffunction-sections -fdata-sections"
+fi
 
 # Common build paths and flags
 export PKG_CONFIG_LIBDIR="${TARGET}/lib/pkgconfig"
@@ -32,12 +43,14 @@ export LIBRARY_PATH="${TARGET}/lib"
 export LD_LIBRARY_PATH="${TARGET}/lib"
 export CFLAGS="${FLAGS}"
 export CXXFLAGS="${FLAGS}"
+export OBJCFLAGS="${FLAGS}"
+export OBJCXXFLAGS="${FLAGS}"
 export LDFLAGS="-L${TARGET}/lib"
 
 # On Linux, we need to create a relocatable library
 # Note: this is handled for macOS using the `install_name_tool` (see below)
 if [ "$LINUX" = true ]; then
-  export LDFLAGS+=" -Wl,-rpath='\$\$ORIGIN/'"
+  export LDFLAGS+=" -Wl,--gc-sections -Wl,-rpath='\$\$ORIGIN/'"
 fi
 
 # The ARM64v8 and ARMv7 binaries needs to be statically linked against libstdc++, since
@@ -50,6 +63,17 @@ fi
 # On macOS, we need to explicitly link against the system libraries
 if [ "$DARWIN" = true ]; then
   export LDFLAGS+=" -framework CoreServices -framework CoreFoundation -framework Foundation -framework AppKit"
+  # Local rust installation
+  export CARGO_HOME="${DEPS}/cargo"
+  export RUSTUP_HOME="${DEPS}/rustup"
+  mkdir -p $CARGO_HOME
+  mkdir -p $RUSTUP_HOME
+  export PATH="${CARGO_HOME}/bin:${PATH}"
+  if [ "$PLATFORM" == "osx-arm64" ]; then
+    export DARWIN_ARM=true
+    # We need to explicitly tell meson about pkg-config when cross compiling on macOS
+    export PKG_CONFIG="$(brew --prefix)/bin/pkg-config"
+  fi
 fi
 
 # Run as many parallel jobs as there are available CPU cores
@@ -64,7 +88,7 @@ export CARGO_PROFILE_RELEASE_DEBUG=false
 export CARGO_PROFILE_RELEASE_CODEGEN_UNITS=1
 export CARGO_PROFILE_RELEASE_INCREMENTAL=false
 export CARGO_PROFILE_RELEASE_LTO=true
-export CARGO_PROFILE_RELEASE_OPT_LEVEL=s
+export CARGO_PROFILE_RELEASE_OPT_LEVEL=z
 export CARGO_PROFILE_RELEASE_PANIC=abort
 
 # Workaround for https://github.com/rust-lang/compiler-builtins/issues/353
@@ -76,45 +100,38 @@ fi
 # We don't want to use any native libraries, so unset PKG_CONFIG_PATH
 unset PKG_CONFIG_PATH
 
-if [[ $CFLAGS == *"-ffast-math"* ]]; then
-  base64 -d <<<"H4sIAESAg14AA41PQQ6DIBC884o5atLqO/qEJkSCAZUUWaNYYuPji9Yam/bQSQjL7OwwC/EnWI4r
-jWjkXUM7WVqtUMnBo5W+wRGczaDOm9Y8pDfkBtSWSmntlOFSYYouN0dhkc5RGhrpV1L2GoqMq0/r
-s+vjUGknBBqtilIOR/4VQJHTMD7DT+QM5z/B9tDxFEIUO7EwCVHK3/sff0iESPlWpzznH811sXlx
-DzH1d2e72BOI5SxeewEAAA==" | gunzip
-  exit 1
-fi
-
 # Common options for curl
 CURL="curl --silent --location --retry 3 --retry-max-time 30"
 
 # Dependency version numbers
-VERSION_ZLIB=1.2.11
+VERSION_ZLIB_NG=2.0.2
 VERSION_FFI=3.3
-VERSION_GLIB=2.67.1
+VERSION_GLIB=2.68.0
 VERSION_XML2=2.9.10
 VERSION_GSF=1.14.47
 VERSION_EXIF=0.6.22
-VERSION_LCMS2=2.11
-VERSION_JPEG=2.0.6
+VERSION_LCMS2=2.12
+VERSION_MOZJPEG=4.0.3
 VERSION_PNG16=1.6.37
-VERSION_SPNG=0.6.1
-VERSION_WEBP=1.1.0
+VERSION_SPNG=0.6.2
+VERSION_IMAGEQUANT=2.4.1
+VERSION_WEBP=1.2.0
 VERSION_TIFF=4.2.0
 VERSION_ORC=0.4.32
 VERSION_GETTEXT=0.21
-VERSION_GDKPIXBUF=2.42.2
+VERSION_GDKPIXBUF=2.42.4
 VERSION_FREETYPE=2.10.4
-VERSION_EXPAT=2.2.10
+VERSION_EXPAT=2.3.0
 VERSION_FONTCONFIG=2.13.93
-VERSION_HARFBUZZ=2.7.4
+VERSION_HARFBUZZ=2.8.0
 VERSION_PIXMAN=0.40.0
 VERSION_CAIRO=1.17.4
 VERSION_FRIBIDI=1.0.10
-VERSION_PANGO=1.48.0
-VERSION_SVG=2.50.2
+VERSION_PANGO=1.48.3
+VERSION_SVG=2.51.0
 VERSION_GIF=5.1.4
-VERSION_AOM=2.0.1
-VERSION_HEIF=1.10.0
+VERSION_AOM=3.0.0
+VERSION_HEIF=1.11.0
 
 # Remove patch version component
 without_patch() {
@@ -124,20 +141,19 @@ without_patch() {
 # Check for newer versions
 ALL_AT_VERSION_LATEST=true
 version_latest() {
-  VERSION_LATEST=$($CURL https://release-monitoring.org/api/project/$3 | jq -r '.versions[]' | grep -E -m1 '^[0-9]+(.[0-9]+)*$')
+  VERSION_LATEST=$($CURL "https://release-monitoring.org/api/v2/versions/?project_id=$3" | jq -j ".stable_versions[0]")
   if [ "$VERSION_LATEST" != "$2" ]; then
     ALL_AT_VERSION_LATEST=false
     echo "$1 version $2 has been superseded by $VERSION_LATEST"
   fi
 }
-version_latest "zlib" "$VERSION_ZLIB" "5303"
+version_latest "zlib-ng" "$VERSION_ZLIB_NG" "115592"
 version_latest "ffi" "$VERSION_FFI" "1611"
 version_latest "glib" "$VERSION_GLIB" "10024"
 version_latest "xml2" "$VERSION_XML2" "1783"
 version_latest "gsf" "$VERSION_GSF" "1980"
 version_latest "exif" "$VERSION_EXIF" "1607"
 version_latest "lcms2" "$VERSION_LCMS2" "9815"
-#version_latest "jpeg" "$VERSION_JPEG" "1648" # latest version in release monitoring is beta
 version_latest "png" "$VERSION_PNG16" "1705"
 version_latest "spng" "$VERSION_SPNG" "24289"
 version_latest "webp" "$VERSION_WEBP" "1761"
@@ -155,11 +171,18 @@ version_latest "fribidi" "$VERSION_FRIBIDI" "857"
 version_latest "pango" "$VERSION_PANGO" "11783"
 version_latest "svg" "$VERSION_SVG" "5420"
 #version_latest "gif" "$VERSION_GIF" "1158" # v5.1.5+ provides a Makefile only so will require custom cross-compilation setup
-#version_latest "aom" "$VERSION_AOM" "17628" # latest version in release monitoring does not exist
+#version_latest "aom" "$VERSION_AOM" "17628" # latest version in release monitoring is a release candidate
 version_latest "heif" "$VERSION_HEIF" "64439"
 if [ "$ALL_AT_VERSION_LATEST" = "false" ]; then exit 1; fi
 
 # Download and build dependencies from source
+
+if [ "$DARWIN" = true ]; then
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --no-modify-path -y
+  if [ "$DARWIN_ARM" = true ]; then
+    ${CARGO_HOME}/bin/rustup target add aarch64-apple-darwin
+  fi
+fi
 
 if [ "${PLATFORM%-*}" == "linux-musl" ] || [ "$DARWIN" = true ]; then
   mkdir ${DEPS}/gettext
@@ -170,15 +193,21 @@ if [ "${PLATFORM%-*}" == "linux-musl" ] || [ "$DARWIN" = true ]; then
   make install-strip
 fi
 
-mkdir ${DEPS}/zlib
-$CURL https://zlib.net/zlib-${VERSION_ZLIB}.tar.xz | tar xJC ${DEPS}/zlib --strip-components=1
-cd ${DEPS}/zlib
-./configure --prefix=${TARGET} ${LINUX:+--uname=linux} ${DARWIN:+--uname=darwin} --static
-make install
+mkdir ${DEPS}/zlib-ng
+$CURL https://github.com/zlib-ng/zlib-ng/archive/${VERSION_ZLIB_NG}.tar.gz | tar xzC ${DEPS}/zlib-ng --strip-components=1
+cd ${DEPS}/zlib-ng
+CFLAGS="${CFLAGS} -O3" LDFLAGS=${LDFLAGS/\$/} cmake -G"Unix Makefiles" \
+  -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DBUILD_SHARED_LIBS=FALSE -DZLIB_COMPAT=TRUE
+make install/strip
 
 mkdir ${DEPS}/ffi
 $CURL https://github.com/libffi/libffi/releases/download/v${VERSION_FFI}/libffi-${VERSION_FFI}.tar.gz | tar xzC ${DEPS}/ffi --strip-components=1
 cd ${DEPS}/ffi
+if [ "$DARWIN_ARM" = true ]; then
+  # Thanks Homebrew for the libffi patch
+  # See https://github.com/libffi/libffi/pull/565
+  $CURL https://raw.githubusercontent.com/Homebrew/formula-patches/a4a91e61/libffi/libffi-3.3-arm64.patch | patch -p1
+fi
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-builddir --disable-multi-os-directory --disable-raw-api --disable-structs
 make install-strip
@@ -186,28 +215,29 @@ make install-strip
 mkdir ${DEPS}/glib
 $CURL https://download.gnome.org/sources/glib/$(without_patch $VERSION_GLIB)/glib-${VERSION_GLIB}.tar.xz | tar xJC ${DEPS}/glib --strip-components=1
 cd ${DEPS}/glib
-# Disable tests
-sed -i'.bak' "/build_tests =/ s/= .*/= false/" meson.build
 if [ "${PLATFORM%-*}" == "linux-musl" ]; then
-  #$CURL https://git.alpinelinux.org/aports/plain/main/glib/musl-libintl.patch | patch -p1 # not compatible with glib 2.65.0
+  #$CURL https://git.alpinelinux.org/aports/plain/main/glib/musl-libintl.patch | patch -p1 # not compatible with latest glib
   $CURL https://gist.github.com/kleisauke/f4bda6fc3030cf7b8a4fdb88e2ce8e13/raw/246ac97dfba72ad7607c69eed1810b2354cd2e86/musl-libintl.patch | patch -p1
 fi
 LDFLAGS=${LDFLAGS/\$/} meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
-  -Dinternal_pcre=true -Dinstalled_tests=false -Dlibmount=disabled -Dlibelf=disabled ${DARWIN:+-Dbsymbolic_functions=false}
+  -Dinternal_pcre=true -Dtests=false -Dinstalled_tests=false -Dlibmount=disabled -Dlibelf=disabled ${DARWIN:+-Dbsymbolic_functions=false}
 ninja -C _build
 ninja -C _build install
 
 mkdir ${DEPS}/xml2
 $CURL http://xmlsoft.org/sources/libxml2-${VERSION_XML2}.tar.gz | tar xzC ${DEPS}/xml2 --strip-components=1
 cd ${DEPS}/xml2
+# Remove --with-regexps flag from v2.10.0+
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
-  --without-python --without-debug --without-docbook --without-ftp --without-html --without-legacy \
-  --without-push --without-schematron --without-lzma --with-zlib=${TARGET}
+  --with-minimum --with-reader --with-writer --with-valid --with-http --with-tree --with-regexps \
+  --without-python --without-lzma --with-zlib=${TARGET}
 make install-strip
 
 mkdir ${DEPS}/gsf
 $CURL https://download.gnome.org/sources/libgsf/$(without_patch $VERSION_GSF)/libgsf-${VERSION_GSF}.tar.xz | tar xJC ${DEPS}/gsf --strip-components=1
 cd ${DEPS}/gsf
+# Skip unused subdirs
+sed -i'.bak' "s/ doc tools tests thumbnailer python//" Makefile.in
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --without-bz2 --without-gdk-pixbuf --with-zlib=${TARGET}
 make install-strip
@@ -222,7 +252,7 @@ make install-strip
 mkdir ${DEPS}/lcms2
 $CURL https://downloads.sourceforge.net/project/lcms/lcms/${VERSION_LCMS2}/lcms2-${VERSION_LCMS2}.tar.gz | tar xzC ${DEPS}/lcms2 --strip-components=1
 cd ${DEPS}/lcms2
-./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking
+CFLAGS="${CFLAGS} -O3" ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking
 make install-strip
 
 mkdir ${DEPS}/aom
@@ -230,16 +260,19 @@ $CURL https://storage.googleapis.com/aom-releases/libaom-${VERSION_AOM}.tar.gz |
 cd ${DEPS}/aom
 mkdir aom_build
 cd aom_build
-AOM_AS_FLAGS="${FLAGS}" LDFLAGS=${LDFLAGS/\$/} cmake -G"Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} \
-  -DCMAKE_INSTALL_LIBDIR=lib -DBUILD_SHARED_LIBS=FALSE -DENABLE_DOCS=0 -DENABLE_TESTS=0 -DENABLE_TESTDATA=0 -DENABLE_TOOLS=0 -DENABLE_EXAMPLES=0 \
-  -DCONFIG_PIC=1 -DENABLE_NASM=1 \
+AOM_AS_FLAGS="${FLAGS}" LDFLAGS=${LDFLAGS/\$/} cmake -G"Unix Makefiles" \
+  -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_INSTALL_LIBDIR=lib \
+  -DBUILD_SHARED_LIBS=FALSE -DENABLE_DOCS=0 -DENABLE_TESTS=0 -DENABLE_TESTDATA=0 -DENABLE_TOOLS=0 -DENABLE_EXAMPLES=0 \
+  -DCONFIG_PIC=1 -DENABLE_NASM=1 ${WITHOUT_NEON:+-DENABLE_NEON=0} ${DARWIN_ARM:+-DCONFIG_RUNTIME_CPU_DETECT=0} \
+  -DCONFIG_AV1_HIGHBITDEPTH=0 -DCONFIG_WEBM_IO=0 \
   ..
 make install/strip
 
 mkdir ${DEPS}/heif
 $CURL https://github.com/strukturag/libheif/releases/download/v${VERSION_HEIF}/libheif-${VERSION_HEIF}.tar.gz | tar xzC ${DEPS}/heif --strip-components=1
 cd ${DEPS}/heif
-./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
+CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" ./configure \
+  --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-gdk-pixbuf --disable-go --disable-examples --disable-libde265 --disable-x265
 if [[ $PLATFORM == "linux-arm"* ]]; then
   # Remove -lstdc++ from Libs.private, it won't work with -static-libstdc++
@@ -248,30 +281,38 @@ fi
 make install-strip
 
 mkdir ${DEPS}/jpeg
-$CURL https://github.com/libjpeg-turbo/libjpeg-turbo/archive/${VERSION_JPEG}.tar.gz | tar xzC ${DEPS}/jpeg --strip-components=1
+$CURL https://github.com/mozilla/mozjpeg/archive/v${VERSION_MOZJPEG}.tar.gz | tar xzC ${DEPS}/jpeg --strip-components=1
 cd ${DEPS}/jpeg
-LDFLAGS=${LDFLAGS/\$/} cmake -G"Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_INSTALL_LIBDIR=${TARGET}/lib \
-  -DENABLE_STATIC=TRUE -DENABLE_SHARED=FALSE -DWITH_JPEG8=1 -DWITH_TURBOJPEG=FALSE
+CFLAGS="${CFLAGS} -O3" LDFLAGS=${LDFLAGS/\$/} cmake -G"Unix Makefiles" \
+  -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_INSTALL_LIBDIR=${TARGET}/lib \
+  -DENABLE_STATIC=TRUE -DENABLE_SHARED=FALSE -DWITH_JPEG8=1 -DWITH_TURBOJPEG=FALSE -DPNG_SUPPORTED=FALSE
 make install/strip
 
 mkdir ${DEPS}/png16
 $CURL https://downloads.sourceforge.net/project/libpng/libpng16/${VERSION_PNG16}/libpng-${VERSION_PNG16}.tar.xz | tar xJC ${DEPS}/png16 --strip-components=1
 cd ${DEPS}/png16
-./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking
+CFLAGS="${CFLAGS} -O3" ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking
 make install-strip
 
 mkdir ${DEPS}/spng
 $CURL https://github.com/randy408/libspng/archive/v${VERSION_SPNG}.tar.gz | tar xzC ${DEPS}/spng --strip-components=1
 cd ${DEPS}/spng
-meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
+CFLAGS="${CFLAGS} -O3" meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
   -Dstatic_zlib=true
+ninja -C _build
+ninja -C _build install
+
+mkdir ${DEPS}/imagequant
+$CURL https://github.com/lovell/libimagequant/archive/v${VERSION_IMAGEQUANT}.tar.gz | tar xzC ${DEPS}/imagequant --strip-components=1
+cd ${DEPS}/imagequant
+CFLAGS="${CFLAGS} -O3" meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON}
 ninja -C _build
 ninja -C _build install
 
 mkdir ${DEPS}/webp
 $CURL https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-${VERSION_WEBP}.tar.gz | tar xzC ${DEPS}/webp --strip-components=1
 cd ${DEPS}/webp
-./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
+CFLAGS="${CFLAGS} -O3" ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-neon --enable-libwebpmux --enable-libwebpdemux
 make install-strip
 
@@ -287,7 +328,7 @@ make install-strip
 mkdir ${DEPS}/orc
 $CURL https://gstreamer.freedesktop.org/data/src/orc/orc-${VERSION_ORC}.tar.xz | tar xJC ${DEPS}/orc --strip-components=1
 cd ${DEPS}/orc
-LDFLAGS=${LDFLAGS/\$/} meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
+CFLAGS="${CFLAGS} -O3" LDFLAGS=${LDFLAGS/\$/} meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
   -Dorc-test=disabled -Dbenchmarks=disabled -Dexamples=disabled -Dgtk_doc=disabled -Dtests=disabled -Dtools=disabled
 ninja -C _build
 ninja -C _build install
@@ -301,6 +342,13 @@ sed -i'.bak' "/subdir('tests')/{N;d;}" meson.build
 sed -i'.bak' "/\[ 'bmp'/{N;N;N;d;}" gdk-pixbuf/meson.build
 sed -i'.bak' "/\[ 'pnm'/d" gdk-pixbuf/meson.build
 sed -i'.bak' "/\[ 'xpm'/{N;N;N;N;d;}" gdk-pixbuf/meson.build
+# Skip executables
+sed -i'.bak' "/gdk-pixbuf-csource/{N;N;d;}" gdk-pixbuf/meson.build
+sed -i'.bak' "/loaders_cache = custom/{N;N;N;N;N;N;N;N;N;c\\
+  loaders_cache = []\\
+  loaders_dep = declare_dependency()
+}" gdk-pixbuf/meson.build
+sed -i'.bak' "/gdk-pixbuf-query-loaders/d" build-aux/post-install.sh
 # Ensure meson can find libjpeg when cross-compiling
 sed -i'.bak' "s/has_header('jpeglib.h')/has_header('jpeglib.h', args: '-I\/target\/include')/g" meson.build
 sed -i'.bak' "s/cc.find_library('jpeg'/dependency('libjpeg'/g" meson.build
@@ -322,7 +370,8 @@ mkdir ${DEPS}/expat
 $CURL https://github.com/libexpat/libexpat/releases/download/R_${VERSION_EXPAT//./_}/expat-${VERSION_EXPAT}.tar.xz | tar xJC ${DEPS}/expat --strip-components=1
 cd ${DEPS}/expat
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared \
-  --disable-dependency-tracking --without-xmlwf --without-docbook --without-getrandom --without-sys-getrandom
+  --disable-dependency-tracking --without-xmlwf --without-docbook --without-getrandom --without-sys-getrandom \
+  --without-libbsd --without-examples --without-tests
 make install-strip
 
 mkdir ${DEPS}/fontconfig
@@ -339,7 +388,7 @@ cd ${DEPS}/harfbuzz
 # Disable utils
 sed -i'.bak' "/subdir('util')/d" meson.build
 LDFLAGS=${LDFLAGS/\$/} meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
-  -Dicu=disabled -Dtests=disabled -Dintrospection=disabled -Ddocs=disabled -Dbenchmark=disabled ${DARWIN:+-Dcoretext=enabled}
+  -Dgobject=disabled -Dicu=disabled -Dtests=disabled -Dintrospection=disabled -Ddocs=disabled -Dbenchmark=disabled ${DARWIN:+-Dcoretext=enabled}
 ninja -C _build
 ninja -C _build install
 
@@ -357,7 +406,8 @@ mkdir ${DEPS}/cairo
 $CURL https://cairographics.org/snapshots/cairo-${VERSION_CAIRO}.tar.xz | tar xJC ${DEPS}/cairo --strip-components=1
 cd ${DEPS}/cairo
 sed -i'.bak' "s/^\(Libs:.*\)/\1 @CAIRO_NONPKGCONFIG_LIBS@/" src/cairo.pc.in
-./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
+CFLAGS="$CFLAGS ${LINUX:+-fno-function-sections -fno-data-sections}" LDFLAGS="$LDFLAGS ${LINUX:+-Wl,--no-gc-sections}" ./configure \
+  --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-xlib --disable-xcb --disable-win32 --disable-egl --disable-glx --disable-wgl --disable-ps \
   --disable-trace --disable-interpreter ${LINUX:+--disable-quartz} ${DARWIN:+--enable-quartz-image} \
   LIBS="-lpixman-1 -lfreetype"
@@ -386,11 +436,21 @@ ninja -C _build install
 mkdir ${DEPS}/svg
 $CURL https://download.gnome.org/sources/librsvg/$(without_patch $VERSION_SVG)/librsvg-${VERSION_SVG}.tar.xz | tar xJC ${DEPS}/svg --strip-components=1
 cd ${DEPS}/svg
+# Allow building vendored sources with `-Zbuild-std`, see:
+# https://github.com/rust-lang/wg-cargo-std-aware/issues/23#issuecomment-720455524
+if [ "$PLATFORM" == "linux-musl-arm64" ]; then
+  RUST_SRC=$(rustc +nightly --print sysroot)/lib/rustlib/src/rust
+  RUST_TEST=$RUST_SRC/library/test
+  # Copy the Cargo.lock for Rust to places `vendor` will see
+  cp $RUST_SRC/Cargo.lock $RUST_TEST
+  # Actually do the vendor
+  cargo +nightly vendor -s $RUST_TEST/Cargo.toml
+fi
 sed -i'.bak' "s/^\(Requires:.*\)/\1 cairo-gobject pangocairo/" librsvg.pc.in
-# Do not include debugging symbols
-sed -i'.bak' "/debug =/ s/= .*/= false/" Cargo.toml
 # LTO optimization does not work for staticlib+rlib compilation
-sed -i'.bak' "s/, \"rlib\"//" librsvg/Cargo.toml
+sed -i'.bak' "s/, \"rlib\"//" Cargo.toml
+# Skip executables
+sed -i'.bak' "/SCRIPTS = /d" Makefile.in
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-introspection --disable-tools --disable-pixbuf-loader ${DARWIN:+--disable-Bsymbolic}
 make install-strip
@@ -398,17 +458,23 @@ make install-strip
 mkdir ${DEPS}/gif
 $CURL https://downloads.sourceforge.net/project/giflib/giflib-${VERSION_GIF}.tar.gz | tar xzC ${DEPS}/gif --strip-components=1
 cd ${DEPS}/gif
-./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking
+CFLAGS="${CFLAGS} -O3" ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking
 make install-strip
 
 mkdir ${DEPS}/vips
 $CURL https://github.com/libvips/libvips/releases/download/v${VERSION_VIPS}/vips-${VERSION_VIPS}.tar.gz | tar xzC ${DEPS}/vips --strip-components=1
 cd ${DEPS}/vips
-PKG_CONFIG="pkg-config --static" ./configure --host=${CHOST} --prefix=${TARGET} --enable-shared --disable-static --disable-dependency-tracking \
+# Prevent exporting the g_param_spec_types symbol to avoid collisions with shared libraries
+printf "{\n\
+local:\n\
+    g_param_spec_types;\n\
+};" > vips.map
+PKG_CONFIG="pkg-config --static" CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" ./configure \
+  --host=${CHOST} --prefix=${TARGET} --enable-shared --disable-static --disable-dependency-tracking \
   --disable-debug --disable-deprecated --disable-introspection --without-analyze --without-cfitsio --without-fftw \
-  --without-imagequant --without-magick --without-matio --without-nifti --without-OpenEXR \
+  --without-magick --without-matio --without-nifti --without-OpenEXR \
   --without-openslide --without-pdfium --without-poppler --without-ppm --without-radiance \
-  ${LINUX:+LDFLAGS="$LDFLAGS -Wl,-Bsymbolic-functions"}
+  ${LINUX:+LDFLAGS="$LDFLAGS -Wl,-Bsymbolic-functions -Wl,--version-script=$DEPS/vips/vips.map"}
 # https://docs.fedoraproject.org/en-US/packaging-guidelines/#_removing_rpath
 sed -i'.bak' 's|^hardcode_libdir_flag_spec=.*|hardcode_libdir_flag_spec=""|g' libtool
 if [[ $PLATFORM == "linux-arm"* ]]; then
@@ -422,7 +488,8 @@ if [[ $PLATFORM == "linux-arm"* ]]; then
   sed -i'.bak' 's/^postdep_objects=.*$/#&/' libtool
   sed -i'.bak' 's/^postdeps=.*$/#&/' libtool
 fi
-make install-strip
+make -C 'libvips' install-strip
+make -C 'cplusplus' install-strip
 
 # Cleanup
 rm -rf ${TARGET}/lib/{pkgconfig,.libs,*.la,cmake}
@@ -496,8 +563,9 @@ printf "{\n\
   \"gsf\": \"${VERSION_GSF}\",\n\
   \"harfbuzz\": \"${VERSION_HARFBUZZ}\",\n\
   \"heif\": \"${VERSION_HEIF}\",\n\
-  \"jpeg\": \"${VERSION_JPEG}\",\n\
+  \"imagequant\": \"${VERSION_IMAGEQUANT}\",\n\
   \"lcms\": \"${VERSION_LCMS2}\",\n\
+  \"mozjpeg\": \"${VERSION_MOZJPEG}\",\n\
   \"orc\": \"${VERSION_ORC}\",\n\
   \"pango\": \"${VERSION_PANGO}\",\n\
   \"pixman\": \"${VERSION_PIXMAN}\",\n\
@@ -508,13 +576,14 @@ printf "{\n\
   \"vips\": \"${VERSION_VIPS}\",\n\
   \"webp\": \"${VERSION_WEBP}\",\n\
   \"xml\": \"${VERSION_XML2}\",\n\
-  \"zlib\": \"${VERSION_ZLIB}\"\n\
+  \"zlib-ng\": \"${VERSION_ZLIB_NG}\"\n\
 }" >versions.json
 
 # Add third-party notices
 $CURL -O https://raw.githubusercontent.com/kleisauke/libvips-packaging/master/THIRD-PARTY-NOTICES.md
 
 # Create the tarball
+ls -al lib
 rm -rf lib
 mv lib-filtered lib
 tar chzf ${PACKAGE}/libvips-${VERSION_VIPS}-${PLATFORM}.tar.gz \
