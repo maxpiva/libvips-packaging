@@ -20,7 +20,7 @@ Finally, the created `.nupkg` are uploaded on NuGet. You can find them here:
 * [NetVips.Native.linux-musl-x64](https://www.nuget.org/packages/NetVips.Native.linux-musl-x64)
 * [NetVips.Native.linux-musl-arm64](https://www.nuget.org/packages/NetVips.Native.linux-musl-arm64)
 * [NetVips.Native.osx-x64](https://www.nuget.org/packages/NetVips.Native.osx-x64)
-* [NetVips.Native.osx-arm64](https://www.nuget.org/packages/NetVips.Native.osx-x64)
+* [NetVips.Native.osx-arm64](https://www.nuget.org/packages/NetVips.Native.osx-arm64)
 
 The version number of these NuGet packages is in sync with libvips' version number.
 
