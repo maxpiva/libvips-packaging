@@ -104,34 +104,34 @@ unset PKG_CONFIG_PATH
 CURL="curl --silent --location --retry 3 --retry-max-time 30"
 
 # Dependency version numbers
-VERSION_ZLIB_NG=2.0.2
+VERSION_ZLIB_NG=2.0.3
 VERSION_FFI=3.3
-VERSION_GLIB=2.68.0
-VERSION_XML2=2.9.10
+VERSION_GLIB=2.68.2
+VERSION_XML2=2.9.12
 VERSION_GSF=1.14.47
 VERSION_EXIF=0.6.22
 VERSION_LCMS2=2.12
 VERSION_MOZJPEG=4.0.3
 VERSION_PNG16=1.6.37
-VERSION_SPNG=0.6.2
+VERSION_SPNG=0.6.3
 VERSION_IMAGEQUANT=2.4.1
 VERSION_WEBP=1.2.0
-VERSION_TIFF=4.2.0
+VERSION_TIFF=4.3.0
 VERSION_ORC=0.4.32
-VERSION_GETTEXT=0.21
-VERSION_GDKPIXBUF=2.42.4
+VERSION_PROXY_LIBINTL=ef9fe6d
+VERSION_GDKPIXBUF=2.42.6
 VERSION_FREETYPE=2.10.4
-VERSION_EXPAT=2.3.0
+VERSION_EXPAT=2.4.1
 VERSION_FONTCONFIG=2.13.93
-VERSION_HARFBUZZ=2.8.0
+VERSION_HARFBUZZ=2.8.1
 VERSION_PIXMAN=0.40.0
 VERSION_CAIRO=1.17.4
 VERSION_FRIBIDI=1.0.10
-VERSION_PANGO=1.48.4
-VERSION_SVG=2.51.0
+VERSION_PANGO=1.48.5
+VERSION_SVG=2.51.2
 VERSION_GIF=5.1.4
-VERSION_AOM=3.0.0
-VERSION_HEIF=1.11.0
+VERSION_AOM=3.1.0
+VERSION_HEIF=1.12.0
 
 # Remove patch version component
 without_patch() {
@@ -139,8 +139,13 @@ without_patch() {
 }
 
 # Check for newer versions
+# Skip by setting the VERSION_LATEST_REQUIRED environment variable to "false"
 ALL_AT_VERSION_LATEST=true
 version_latest() {
+  if [ "$VERSION_LATEST_REQUIRED" == "false" ]; then
+    echo "Skipping latest version check for $1"
+    return
+  fi
   VERSION_LATEST=$($CURL "https://release-monitoring.org/api/v2/versions/?project_id=$3" | jq -j ".stable_versions[0]")
   if [ "$VERSION_LATEST" != "$2" ]; then
     ALL_AT_VERSION_LATEST=false
@@ -157,9 +162,8 @@ version_latest "lcms2" "$VERSION_LCMS2" "9815"
 version_latest "png" "$VERSION_PNG16" "1705"
 version_latest "spng" "$VERSION_SPNG" "24289"
 version_latest "webp" "$VERSION_WEBP" "1761"
-version_latest "tiff" "$VERSION_TIFF" "13521"
+version_latest "tiff" "$VERSION_TIFF" "1738"
 version_latest "orc" "$VERSION_ORC" "2573"
-version_latest "gettext" "$VERSION_GETTEXT" "898"
 version_latest "gdkpixbuf" "$VERSION_GDKPIXBUF" "9533"
 version_latest "freetype" "$VERSION_FREETYPE" "854"
 version_latest "expat" "$VERSION_EXPAT" "770"
@@ -171,7 +175,7 @@ version_latest "fribidi" "$VERSION_FRIBIDI" "857"
 version_latest "pango" "$VERSION_PANGO" "11783"
 version_latest "svg" "$VERSION_SVG" "5420"
 #version_latest "gif" "$VERSION_GIF" "1158" # v5.1.5+ provides a Makefile only so will require custom cross-compilation setup
-#version_latest "aom" "$VERSION_AOM" "17628" # latest version in release monitoring is a release candidate
+version_latest "aom" "$VERSION_AOM" "17628"
 version_latest "heif" "$VERSION_HEIF" "64439"
 if [ "$ALL_AT_VERSION_LATEST" = "false" ]; then exit 1; fi
 
@@ -185,12 +189,12 @@ if [ "$DARWIN" = true ]; then
 fi
 
 if [ "${PLATFORM%-*}" == "linux-musl" ] || [ "$DARWIN" = true ]; then
-  mkdir ${DEPS}/gettext
-  $CURL https://ftp.gnu.org/pub/gnu/gettext/gettext-${VERSION_GETTEXT}.tar.xz | tar xJC ${DEPS}/gettext --strip-components=1
-  cd ${DEPS}/gettext/gettext-runtime
-  ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
-    --disable-libasprintf --disable-java --disable-native-java --disable-csharp
-  make install-strip
+  mkdir ${DEPS}/proxy-libintl
+  $CURL https://github.com/frida/proxy-libintl/archive/${VERSION_PROXY_LIBINTL}.tar.gz | tar xzC ${DEPS}/proxy-libintl --strip-components=1
+  cd ${DEPS}/proxy-libintl
+  LDFLAGS=${LDFLAGS/\$/} meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON}
+  ninja -C _build
+  ninja -C _build install
 fi
 
 mkdir ${DEPS}/zlib-ng
@@ -215,9 +219,8 @@ make install-strip
 mkdir ${DEPS}/glib
 $CURL https://download.gnome.org/sources/glib/$(without_patch $VERSION_GLIB)/glib-${VERSION_GLIB}.tar.xz | tar xJC ${DEPS}/glib --strip-components=1
 cd ${DEPS}/glib
-if [ "${PLATFORM%-*}" == "linux-musl" ]; then
-  #$CURL https://git.alpinelinux.org/aports/plain/main/glib/musl-libintl.patch | patch -p1 # not compatible with latest glib
-  $CURL https://gist.github.com/kleisauke/f4bda6fc3030cf7b8a4fdb88e2ce8e13/raw/246ac97dfba72ad7607c69eed1810b2354cd2e86/musl-libintl.patch | patch -p1
+if [ "${PLATFORM%-*}" == "linux-musl" ] || [ "$DARWIN" = true ]; then
+  $CURL https://gist.github.com/kleisauke/f6dcbf02a9aa43fd582272c3d815e7a8/raw/13049037ce45592d0eb76a12a761212bc48bc879/glib-proxy-libintl.patch | patch -p1
 fi
 LDFLAGS=${LDFLAGS/\$/} meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
   -Dinternal_pcre=true -Dtests=false -Dinstalled_tests=false -Dlibmount=disabled -Dlibelf=disabled ${DARWIN:+-Dbsymbolic_functions=false}
@@ -227,10 +230,9 @@ ninja -C _build install
 mkdir ${DEPS}/xml2
 $CURL http://xmlsoft.org/sources/libxml2-${VERSION_XML2}.tar.gz | tar xzC ${DEPS}/xml2 --strip-components=1
 cd ${DEPS}/xml2
-# Remove --with-regexps flag from v2.10.0+
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
-  --with-minimum --with-reader --with-writer --with-valid --with-http --with-tree --with-regexps \
-  --without-python --without-lzma --with-zlib=${TARGET}
+  --with-minimum --with-reader --with-writer --with-valid --with-http --with-tree --without-python --without-lzma \
+  --with-zlib=${TARGET}
 make install-strip
 
 mkdir ${DEPS}/gsf
@@ -239,14 +241,16 @@ cd ${DEPS}/gsf
 # Skip unused subdirs
 sed -i'.bak' "s/ doc tools tests thumbnailer python//" Makefile.in
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
-  --without-bz2 --without-gdk-pixbuf --with-zlib=${TARGET}
+  --without-bz2 --without-gdk-pixbuf --disable-nls --without-libiconv-prefix --without-libintl-prefix --with-zlib=${TARGET}
 make install-strip
 
 mkdir ${DEPS}/exif
 $CURL https://github.com/libexif/libexif/releases/download/libexif-${VERSION_EXIF//./_}-release/libexif-${VERSION_EXIF}.tar.xz | tar xJC ${DEPS}/exif --strip-components=1
 cd ${DEPS}/exif
 autoreconf -fiv
-./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking
+./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
+  --disable-nls --without-libiconv-prefix --without-libintl-prefix \
+  CPPFLAGS="-DNO_VERBOSE_TAG_STRINGS -DNO_VERBOSE_TAG_DATA"
 make install-strip
 
 mkdir ${DEPS}/lcms2
@@ -271,6 +275,12 @@ make install/strip
 mkdir ${DEPS}/heif
 $CURL https://github.com/strukturag/libheif/releases/download/v${VERSION_HEIF}/libheif-${VERSION_HEIF}.tar.gz | tar xzC ${DEPS}/heif --strip-components=1
 cd ${DEPS}/heif
+# [PATCH] aom encoder: improve performance by ~2x using new 'all intra'
+$CURL https://github.com/lovell/libheif/commit/de0c159a60c2c50931321f06e36a3b6640c5c807.patch | patch -p1
+# [PATCH] aom: expose decoder error messages
+$CURL https://github.com/lovell/libheif/commit/7e1c1888023f6dd68cf33e537e7eb8e4d5e17588.patch | patch -p1
+# [PATCH] Detect and prevent negative overflow of clap box dimensions
+$CURL https://github.com/lovell/libheif/commit/e625a702ec7d46ce042922547d76045294af71d6.patch | git apply -
 CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" ./configure \
   --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-gdk-pixbuf --disable-go --disable-examples --disable-libde265 --disable-x265
@@ -339,17 +349,16 @@ $CURL https://download.gnome.org/sources/gdk-pixbuf/$(without_patch $VERSION_GDK
 cd ${DEPS}/gdkpixbuf
 # Disable tests and thumbnailer
 sed -i'.bak' "/subdir('tests')/{N;d;}" meson.build
+sed -i'.bak' "/post-install/{N;N;N;N;d;}" meson.build
 # Disable the built-in loaders for BMP, GIF, ICO, PNM, XPM, XBM, TGA, ICNS and QTIF
-sed -i'.bak' "/\[ 'bmp'/{N;N;N;d;}" gdk-pixbuf/meson.build
-sed -i'.bak' "/\[ 'pnm'/d" gdk-pixbuf/meson.build
-sed -i'.bak' "/\[ 'xpm'/{N;N;N;N;d;}" gdk-pixbuf/meson.build
+sed -i'.bak' "/'bmp':/{N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;d;}" gdk-pixbuf/meson.build
+sed -i'.bak' "/'pnm':/{N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;d;}" gdk-pixbuf/meson.build
 # Skip executables
 sed -i'.bak' "/gdk-pixbuf-csource/{N;N;d;}" gdk-pixbuf/meson.build
 sed -i'.bak' "/loaders_cache = custom/{N;N;N;N;N;N;N;N;N;c\\
   loaders_cache = []\\
   loaders_dep = declare_dependency()
 }" gdk-pixbuf/meson.build
-sed -i'.bak' "/gdk-pixbuf-query-loaders/d" build-aux/post-install.sh
 # Ensure meson can find libjpeg when cross-compiling
 sed -i'.bak' "s/has_header('jpeglib.h')/has_header('jpeglib.h', args: '-I\/target\/include')/g" meson.build
 sed -i'.bak' "s/cc.find_library('jpeg'/dependency('libjpeg'/g" meson.build
@@ -380,7 +389,7 @@ $CURL https://www.freedesktop.org/software/fontconfig/release/fontconfig-${VERSI
 cd ${DEPS}/fontconfig
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --with-expat-includes=${TARGET}/include --with-expat-lib=${TARGET}/lib ${LINUX:+--sysconfdir=/etc} \
-  ${DARWIN:+--sysconfdir=/usr/local/etc} --disable-docs
+  ${DARWIN:+--sysconfdir=/usr/local/etc} --disable-docs --disable-nls
 make install-strip
 
 mkdir ${DEPS}/harfbuzz
@@ -453,7 +462,8 @@ sed -i'.bak' "s/, \"rlib\"//" Cargo.toml
 # Skip executables
 sed -i'.bak' "/SCRIPTS = /d" Makefile.in
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
-  --disable-introspection --disable-tools --disable-pixbuf-loader ${DARWIN:+--disable-Bsymbolic}
+  --disable-introspection --disable-tools --disable-pixbuf-loader --disable-nls --without-libiconv-prefix --without-libintl-prefix \
+  ${DARWIN:+--disable-Bsymbolic}
 make install-strip
 
 mkdir ${DEPS}/gif
@@ -558,7 +568,6 @@ printf "{\n\
   \"freetype\": \"${VERSION_FREETYPE}\",\n\
   \"fribidi\": \"${VERSION_FRIBIDI}\",\n\
   \"gdkpixbuf\": \"${VERSION_GDKPIXBUF}\",\n\
-  \"gettext\": \"${VERSION_GETTEXT}\",\n\
   \"gif\": \"${VERSION_GIF}\",\n\
   \"glib\": \"${VERSION_GLIB}\",\n\
   \"gsf\": \"${VERSION_GSF}\",\n\
@@ -571,6 +580,7 @@ printf "{\n\
   \"pango\": \"${VERSION_PANGO}\",\n\
   \"pixman\": \"${VERSION_PIXMAN}\",\n\
   \"png\": \"${VERSION_PNG16}\",\n\
+  \"proxy-libintl\": \"${VERSION_PROXY_LIBINTL}\",\n\
   \"svg\": \"${VERSION_SVG}\",\n\
   \"spng\": \"${VERSION_SPNG}\",\n\
   \"tiff\": \"${VERSION_TIFF}\",\n\

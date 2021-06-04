@@ -7,7 +7,7 @@ LABEL maintainer="Kleis Auke Wolthuizen <info@kleisauke.nl>"
 ENV \
   RUSTUP_HOME="/usr/local/rustup" \
   CARGO_HOME="/usr/local/cargo" \
-  PATH="/usr/local/cargo/bin:/opt/rh/devtoolset-9/root/usr/bin:$PATH"
+  PATH="/usr/local/cargo/bin:/opt/rh/devtoolset-10/root/usr/bin:$PATH"
 
 # Build dependencies
 RUN \
@@ -17,8 +17,8 @@ RUN \
   yum install -y --setopt=tsflags=nodocs \
     advancecomp \
     cmake3 \
-    devtoolset-9-gcc \
-    devtoolset-9-gcc-c++ \
+    devtoolset-10-gcc \
+    devtoolset-10-gcc-c++ \
     glib2-devel \
     gobject-introspection-devel \
     gperf \
@@ -32,7 +32,7 @@ RUN \
     --no-modify-path \
     --profile minimal && \
   ln -s /usr/bin/cmake3 /usr/bin/cmake && \
-  pip3 install meson==0.56.2
+  pip3 install meson
 
 # Compiler settings
 ENV \

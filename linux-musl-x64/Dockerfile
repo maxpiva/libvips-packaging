@@ -38,7 +38,7 @@ RUN \
   curl https://sh.rustup.rs -sSf | sh -s -- -y \
     --no-modify-path \
     --profile minimal && \
-  pip3 install meson==0.56.2
+  pip3 install meson
 
 # Compiler settings
 ENV \

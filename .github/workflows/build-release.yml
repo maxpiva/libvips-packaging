@@ -58,7 +58,8 @@ jobs:
         uses: actions/checkout@v2
       - name: Install dependencies (macOS)
         run: |
-          pip3 install meson==0.56.2 ninja
+          pip3 install meson ninja
+          brew update
           brew install advancecomp automake nasm pkg-config
         if: contains(matrix.platform, 'osx')
       - name: Build ${{ matrix.platform }}
@@ -73,7 +74,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           allowUpdates: true
-          artifact: libvips-*-${{ matrix.platform }}.tar.gz
+          artifacts: libvips-*-${{ matrix.platform }}.tar.gz
           artifactContentType: application/gzip
           artifactErrorsFailBuild: true
           omitBodyDuringUpdate: true

@@ -34,7 +34,7 @@ RUN \
     --profile minimal && \
   rustup target add arm-unknown-linux-gnueabihf && \
   ln -s /usr/bin/cmake3 /usr/bin/cmake && \
-  pip3 install meson==0.56.2
+  pip3 install meson
 
 # Download and install the latest version of crosstool-ng
 RUN \
