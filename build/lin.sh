@@ -55,7 +55,7 @@ fi
 
 # The ARM64v8 and ARMv7 binaries needs to be statically linked against libstdc++, since
 # libstdc++.so.6.0.29 (GLIBCXX_3.4.29) provided by GCC 11.1 isn't available on every OS
-# Note: this is handled in devtoolset in a much better way, see: https://stackoverflow.com/a/19340023/10952119
+# Note: this is handled in devtoolset in a much better way, see: https://stackoverflow.com/a/19340023
 if [[ $PLATFORM == "linux-arm"* ]]; then
   export LDFLAGS+=" -static-libstdc++"
 fi
