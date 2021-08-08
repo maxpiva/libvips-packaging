@@ -31,10 +31,19 @@ RUN \
     texinfo && \
   curl https://sh.rustup.rs -sSf | sh -s -- -y \
     --no-modify-path \
-    --profile minimal && \
+    --profile minimal \
+    --default-toolchain nightly && \
+  rustup component add rust-src && \
   rustup target add aarch64-unknown-linux-gnu && \
   ln -s /usr/bin/cmake3 /usr/bin/cmake && \
   pip3 install meson
+
+# Rebuild the standard library of Rust to avoid collisions with system libraries.
+# See: https://github.com/lovell/sharp-libvips/issues/109
+RUN \
+  printf "[unstable]\n\
+build-std = [\"std\", \"panic_abort\"]\n\
+build-std-features = [\"panic_immediate_abort\"]" > $CARGO_HOME/config.toml
 
 # Download and install the latest version of crosstool-ng
 RUN \

@@ -28,7 +28,7 @@ cd /vips/vips-dev-${VERSION_VIPS_SHORT}
 cp bin/*.dll lib/
 
 # Add third-party notices
-$CURL -O https://raw.githubusercontent.com/kleisauke/libvips-packaging/master/THIRD-PARTY-NOTICES.md
+$CURL -O https://raw.githubusercontent.com/kleisauke/libvips-packaging/main/THIRD-PARTY-NOTICES.md
 
 # Create tarball
 tar czf /packaging/libvips-${VERSION_VIPS}-${PLATFORM}.tar.gz \
