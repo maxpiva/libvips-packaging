@@ -59,7 +59,7 @@ RUN \
   cd .. && \
   rm -rf crosstool-ng
 
-# Build cross-compiler (GCC 11.1.0 - glibc 2.17)
+# Build cross-compiler (GCC 11.2.0 - glibc 2.17)
 WORKDIR /x-tools/build
 
 COPY aarch64-linux-gnu.config /x-tools/build/.config

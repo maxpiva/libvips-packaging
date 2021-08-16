@@ -6,7 +6,7 @@ if [ $# -lt 1 ]; then
   echo "Usage: $0 VERSION [PLATFORM]"
   echo "Build shared libraries for libvips and its dependencies via containers"
   echo
-  echo "Please specify the libvips VERSION, e.g. 8.11.0"
+  echo "Please specify the libvips VERSION, e.g. 8.11.3"
   echo
   echo "Optionally build for only one PLATFORM, defaults to building for all"
   echo
@@ -25,22 +25,21 @@ if [ $# -lt 1 ]; then
   exit 1
 fi
 
-version_vips="$1"
-version_vips_short=${version_vips%.[[:digit:]]*}
-platform="${2:-all}"
+VERSION_VIPS="$1"
+PLATFORM="${2:-all}"
 
 # macOS
 # Note: we intentionally don't build these binaries inside a Docker container
 for flavour in osx-x64 osx-arm64; do
-  if [ $platform = $flavour ] && [ "$(uname)" == "Darwin" ]; then
+  if [ $PLATFORM = $flavour ] && [ "$(uname)" == "Darwin" ]; then
     echo "Building $flavour..."
 
     # Use Clang provided by XCode
     export CC="clang"
     export CXX="clang++"
 
-    export VERSION_VIPS=$version_vips
-    export PLATFORM=$platform
+    export VERSION_VIPS
+    export PLATFORM
 
     # 10.9 should be a good minimal release target
     export MACOSX_DEPLOYMENT_TARGET="10.9"
@@ -51,11 +50,11 @@ for flavour in osx-x64 osx-arm64; do
     # https://trac.ffmpeg.org/ticket/8073#comment:12
     export FLAGS="-fno-stack-check"
 
-    if [ $platform = "osx-arm64" ]; then
+    if [ $PLATFORM = "osx-arm64" ]; then
       # ARM64 builds work via cross compilation from an x86_64 machine
       export CHOST="aarch64-apple-darwin"
       export FLAGS+=" -arch arm64"
-      export MESON="--cross-file=$PWD/$platform/meson.ini"
+      export MESON="--cross-file=$PWD/$PLATFORM/meson.ini"
       # macOS 11 Big Sur is the first version to support ARM-based macs
       export MACOSX_DEPLOYMENT_TARGET="11.0"
       # Set SDKROOT to the latest SDK available
@@ -81,18 +80,18 @@ done
 
 # Windows (x64, x86 and arm64)
 for flavour in win-x64 win-x86 win-arm64; do
-  if [ $platform = "all" ] || [ $platform = $flavour ]; then
+  if [ $PLATFORM = "all" ] || [ $PLATFORM = $flavour ]; then
     echo "Building $flavour..."
     docker build -t vips-dev-win32 win32
-    docker run --rm -e "VERSION_VIPS=$version_vips" -e "PLATFORM=$flavour" -v $PWD:/packaging vips-dev-win32 sh -c "/packaging/build/win.sh"
+    docker run --rm -e "VERSION_VIPS=$VERSION_VIPS" -e "PLATFORM=$flavour" -v $PWD:/packaging vips-dev-win32 sh -c "/packaging/build/win.sh"
   fi
 done
 
 # Linux (x64, ARMv7 and ARM64v8)
 for flavour in linux-x64 linux-arm linux-arm64 linux-musl-x64 linux-musl-arm64; do
-  if [ $platform = "all" ] || [ $platform = $flavour ]; then
+  if [ $PLATFORM = "all" ] || [ $PLATFORM = $flavour ]; then
     echo "Building $flavour..."
     docker build --cache-from vips-dev-$flavour -t vips-dev-$flavour $flavour
-    docker run --rm -e "VERSION_VIPS=$version_vips" -e VERSION_LATEST_REQUIRED -v $PWD:/packaging vips-dev-$flavour sh -c "/packaging/build/lin.sh"
+    docker run --rm -e "VERSION_VIPS=$VERSION_VIPS" -e VERSION_LATEST_REQUIRED -v $PWD:/packaging vips-dev-$flavour sh -c "/packaging/build/lin.sh"
   fi
 done
