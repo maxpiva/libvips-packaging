@@ -106,10 +106,10 @@ CURL="curl --silent --location --retry 3 --retry-max-time 30"
 # Dependency version numbers
 VERSION_ZLIB_NG=2.0.5
 VERSION_FFI=3.4.2
-VERSION_GLIB=2.69.2
+VERSION_GLIB=2.70.0
 VERSION_XML2=2.9.12
 VERSION_GSF=1.14.47
-VERSION_EXIF=0.6.22
+VERSION_EXIF=0.6.23
 VERSION_LCMS2=2.12
 VERSION_MOZJPEG=4.0.3
 VERSION_PNG16=1.6.37
@@ -120,15 +120,15 @@ VERSION_TIFF=4.3.0
 VERSION_ORC=0.4.32
 VERSION_PROXY_LIBINTL=ef9fe6d
 VERSION_GDKPIXBUF=2.42.6
-VERSION_FREETYPE=2.10.4
+VERSION_FREETYPE=2.11.0
 VERSION_EXPAT=2.4.1
 VERSION_FONTCONFIG=2.13.93
-VERSION_HARFBUZZ=2.9.0
+VERSION_HARFBUZZ=3.0.0
 VERSION_PIXMAN=0.40.0
 VERSION_CAIRO=1.17.4
-VERSION_FRIBIDI=1.0.10
-VERSION_PANGO=1.49.0
-VERSION_SVG=2.51.4
+VERSION_FRIBIDI=1.0.11
+VERSION_PANGO=1.49.1
+VERSION_SVG=2.52.0
 VERSION_AOM=3.1.2
 VERSION_HEIF=1.12.0
 
@@ -168,7 +168,7 @@ version_latest "webp" "$VERSION_WEBP" "1761"
 version_latest "tiff" "$VERSION_TIFF" "1738"
 version_latest "orc" "$VERSION_ORC" "2573"
 version_latest "gdkpixbuf" "$VERSION_GDKPIXBUF" "9533"
-version_latest "freetype" "$VERSION_FREETYPE" "854"
+#version_latest "freetype" "$VERSION_FREETYPE" "854" # latest version in release monitoring is out of sync
 version_latest "expat" "$VERSION_EXPAT" "770"
 #version_latest "fontconfig" "$VERSION_FONTCONFIG" "827" # 2.13.94 fails to build on macOS
 version_latest "harfbuzz" "$VERSION_HARFBUZZ" "1299"
@@ -251,9 +251,8 @@ sed -i'.bak' "s/ doc tools tests thumbnailer python//" Makefile.in
 make install-strip
 
 mkdir ${DEPS}/exif
-$CURL https://github.com/libexif/libexif/releases/download/libexif-${VERSION_EXIF//./_}-release/libexif-${VERSION_EXIF}.tar.xz | tar xJC ${DEPS}/exif --strip-components=1
+$CURL https://github.com/libexif/libexif/releases/download/v${VERSION_EXIF}/libexif-${VERSION_EXIF}.tar.xz | tar xJC ${DEPS}/exif --strip-components=1
 cd ${DEPS}/exif
-autoreconf -fiv
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-nls --without-libiconv-prefix --without-libintl-prefix \
   CPPFLAGS="-DNO_VERBOSE_TAG_DATA"
@@ -313,7 +312,7 @@ make install-strip
 mkdir ${DEPS}/spng
 $CURL https://github.com/randy408/libspng/archive/v${VERSION_SPNG}.tar.gz | tar xzC ${DEPS}/spng --strip-components=1
 cd ${DEPS}/spng
-CFLAGS="${CFLAGS} -O3" meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
+CFLAGS="${CFLAGS} -O3" LDFLAGS=${LDFLAGS/\$/} meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
   -Dstatic_zlib=true
 ninja -C _build
 ninja -C _build install
@@ -321,7 +320,7 @@ ninja -C _build install
 mkdir ${DEPS}/imagequant
 $CURL https://github.com/lovell/libimagequant/archive/v${VERSION_IMAGEQUANT}.tar.gz | tar xzC ${DEPS}/imagequant --strip-components=1
 cd ${DEPS}/imagequant
-CFLAGS="${CFLAGS} -O3" meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON}
+CFLAGS="${CFLAGS} -O3" LDFLAGS=${LDFLAGS/\$/} meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON}
 ninja -C _build
 ninja -C _build install
 
@@ -378,9 +377,10 @@ sed -i'.bak' "s/^\(Requires:.*\)/\1 libjpeg, libpng16/" ${TARGET}/lib/pkgconfig/
 mkdir ${DEPS}/freetype
 $CURL https://download.savannah.gnu.org/releases/freetype/freetype-${VERSION_FREETYPE}.tar.xz | tar xJC ${DEPS}/freetype --strip-components=1
 cd ${DEPS}/freetype
-./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
-  --without-bzip2 --without-png
-make install
+LDFLAGS=${LDFLAGS/\$/} meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
+  -Dzlib=enabled -Dpng=disabled -Dharfbuzz=disabled -Dbrotli=disabled -Dbzip2=disabled
+ninja -C _build
+ninja -C _build install
 
 mkdir ${DEPS}/expat
 $CURL https://github.com/libexpat/libexpat/releases/download/R_${VERSION_EXPAT//./_}/expat-${VERSION_EXPAT}.tar.xz | tar xJC ${DEPS}/expat --strip-components=1
