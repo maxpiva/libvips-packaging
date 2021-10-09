@@ -312,7 +312,7 @@ make install-strip
 mkdir ${DEPS}/spng
 $CURL https://github.com/randy408/libspng/archive/v${VERSION_SPNG}.tar.gz | tar xzC ${DEPS}/spng --strip-components=1
 cd ${DEPS}/spng
-CFLAGS="${CFLAGS} -O3" LDFLAGS=${LDFLAGS/\$/} meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
+CFLAGS="${CFLAGS} -O3" meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
   -Dstatic_zlib=true
 ninja -C _build
 ninja -C _build install
@@ -320,7 +320,7 @@ ninja -C _build install
 mkdir ${DEPS}/imagequant
 $CURL https://github.com/lovell/libimagequant/archive/v${VERSION_IMAGEQUANT}.tar.gz | tar xzC ${DEPS}/imagequant --strip-components=1
 cd ${DEPS}/imagequant
-CFLAGS="${CFLAGS} -O3" LDFLAGS=${LDFLAGS/\$/} meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON}
+CFLAGS="${CFLAGS} -O3" meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON}
 ninja -C _build
 ninja -C _build install
 
