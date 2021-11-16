@@ -9,7 +9,8 @@ $category > $option = $value -- $comment
 
 ## `armv7-linux-gnueabihf.config`
 
-- Path and misc options > Prefix directory = /x-tools/${CT\_TARGET}
+- Path and misc options > Prefix directory = /x-tools/${CT_TARGET}
+- Path and misc options > Progress bar = DISABLE
 - Target options > Target Architecture = arm
 - Target options > Default instruction set mode = thumb
 - Target options > Suffix to the arch-part = v7
