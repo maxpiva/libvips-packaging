@@ -25,14 +25,14 @@ RUN \
     gtk-doc \
     jq \
     nasm \
-    ninja-build \
     prelink \
     python3 && \
   curl https://sh.rustup.rs -sSf | sh -s -- -y \
     --no-modify-path \
     --profile minimal && \
   ln -s /usr/bin/cmake3 /usr/bin/cmake && \
-  pip3 install meson
+  pip3 install --upgrade pip && \
+  pip3 install meson ninja
 
 # Compiler settings
 ENV \

@@ -53,10 +53,10 @@ if [ "$LINUX" = true ]; then
   export LDFLAGS+=" -Wl,--gc-sections -Wl,-rpath='\$\$ORIGIN/'"
 fi
 
-# The ARM64v8 and ARMv7 binaries needs to be statically linked against libstdc++, since
+# The ARMv7 binaries needs to be statically linked against libstdc++, since
 # libstdc++.so.6.0.29 (GLIBCXX_3.4.29) provided by GCC 11.2 isn't available on every OS
 # Note: this is handled in devtoolset in a much better way, see: https://stackoverflow.com/a/19340023
-if [[ $PLATFORM == "linux-arm"* ]]; then
+if [ "$PLATFORM" == "linux-arm" ]; then
   export LDFLAGS+=" -static-libstdc++"
 fi
 
@@ -106,7 +106,7 @@ CURL="curl --silent --location --retry 3 --retry-max-time 30"
 # Dependency version numbers
 VERSION_ZLIB_NG=2.0.5
 VERSION_FFI=3.4.2
-VERSION_GLIB=2.70.0
+VERSION_GLIB=2.70.1
 VERSION_XML2=2.9.12
 VERSION_GSF=1.14.47
 VERSION_EXIF=0.6.23
@@ -123,14 +123,15 @@ VERSION_GDKPIXBUF=2.42.6
 VERSION_FREETYPE=2.11.0
 VERSION_EXPAT=2.4.1
 VERSION_FONTCONFIG=2.13.93
-VERSION_HARFBUZZ=3.0.0
+VERSION_HARFBUZZ=3.1.1
 VERSION_PIXMAN=0.40.0
 VERSION_CAIRO=1.17.4
 VERSION_FRIBIDI=1.0.11
-VERSION_PANGO=1.49.1
-VERSION_SVG=2.52.1
-VERSION_AOM=3.1.3
+VERSION_PANGO=1.49.3
+VERSION_SVG=2.52.4
+VERSION_AOM=3.2.0
 VERSION_HEIF=1.12.0
+VERSION_CGIF=0.0.2
 
 # Remove patch version component
 without_patch() {
@@ -149,7 +150,7 @@ version_latest() {
   if [[ "$4" == *"unstable"* ]]; then
     VERSION_SELECTOR="versions"
   fi
-  VERSION_LATEST=$($CURL "https://release-monitoring.org/api/v2/versions/?project_id=$3" | jq -j ".$VERSION_SELECTOR[0]")
+  VERSION_LATEST=$($CURL "https://release-monitoring.org/api/v2/versions/?project_id=$3" | jq -j ".$VERSION_SELECTOR[0]" | tr '_' '.')
   if [ "$VERSION_LATEST" != "$2" ]; then
     ALL_AT_VERSION_LATEST=false
     echo "$1 version $2 has been superseded by $VERSION_LATEST"
@@ -179,6 +180,7 @@ version_latest "pango" "$VERSION_PANGO" "11783"
 version_latest "svg" "$VERSION_SVG" "5420"
 version_latest "aom" "$VERSION_AOM" "17628"
 version_latest "heif" "$VERSION_HEIF" "64439"
+#version_latest "cgif" "$VERSION_CGIF" "" # not yet in release monitoring
 if [ "$ALL_AT_VERSION_LATEST" = "false" ]; then exit 1; fi
 
 # Download and build dependencies from source
@@ -228,6 +230,8 @@ if [ "${PLATFORM%-*}" == "linux-musl" ] || [ "$DARWIN" = true ]; then
   $CURL https://gist.github.com/kleisauke/f6dcbf02a9aa43fd582272c3d815e7a8/raw/9cd8625c6374e0d201e6fc56010008dbb64eb8cf/glib-proxy-libintl.patch | patch -p1
 fi
 $CURL https://gist.githubusercontent.com/lovell/7e0ce65249b951d5be400fb275de3924/raw/1a833ef4263271d299587524198b024eb5cc4f34/glib-without-gregex.patch | patch -p1
+# Use pcre from sourceforge
+sed -i'.bak' "s|ftp.pcre.org/pub/pcre|downloads.sourceforge.net/project/pcre/pcre/8.37|" subprojects/libpcre.wrap
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
   --force-fallback-for=libpcre -Dtests=false -Dinstalled_tests=false -Dlibmount=disabled -Dlibelf=disabled ${DARWIN:+-Dbsymbolic_functions=false}
 ninja -C _build
@@ -286,10 +290,12 @@ $CURL https://github.com/lovell/libheif/commit/de0c159a60c2c50931321f06e36a3b664
 $CURL https://github.com/lovell/libheif/commit/7e1c1888023f6dd68cf33e537e7eb8e4d5e17588.patch | patch -p1
 # [PATCH] Detect and prevent negative overflow of clap box dimensions
 $CURL https://github.com/lovell/libheif/commit/e625a702ec7d46ce042922547d76045294af71d6.patch | git apply -
+# [PATCH] Avoid lroundf
+$CURL https://github.com/strukturag/libheif/pull/551/commits/e9004e96fbaf45b97d73e2469afd8ecfc9930ad0.patch | patch -p1
 CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" ./configure \
   --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-gdk-pixbuf --disable-go --disable-examples --disable-libde265 --disable-x265
-if [[ $PLATFORM == "linux-arm"* ]]; then
+if [ "$PLATFORM" == "linux-arm" ]; then
   # Remove -lstdc++ from Libs.private, it won't work with -static-libstdc++
   sed -i'.bak' '/^Libs.private:/s/-lstdc++//g' libheif.pc
 fi
@@ -467,10 +473,22 @@ sed -i'.bak' "s/^\(Requires:.*\)/\1 cairo-gobject pangocairo/" librsvg.pc.in
 sed -i'.bak' "s/, \"rlib\"//" Cargo.toml
 # Skip executables
 sed -i'.bak' "/SCRIPTS = /d" Makefile.in
+# Use target/CARGO_BUILD_TARGET/release instead of target/release when set
+if [ -n "$CARGO_BUILD_TARGET" ]; then
+  sed -i'.bak' "s/@RUST_TARGET_SUBDIR@/$CARGO_BUILD_TARGET\/@RUST_TARGET_SUBDIR@/" Makefile.in
+fi
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-introspection --disable-tools --disable-pixbuf-loader --disable-nls --without-libiconv-prefix --without-libintl-prefix \
   ${DARWIN:+--disable-Bsymbolic}
 make install-strip
+
+mkdir ${DEPS}/cgif
+$CURL https://github.com/dloebl/cgif/archive/V${VERSION_CGIF}.tar.gz | tar xzC ${DEPS}/cgif --strip-components=1
+cd ${DEPS}/cgif
+CFLAGS="${CFLAGS} -O3" meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
+  -Dtests=false
+ninja -C _build
+ninja -C _build install
 
 mkdir ${DEPS}/vips
 $CURL https://github.com/libvips/libvips/releases/download/v${VERSION_VIPS}/vips-${VERSION_VIPS}.tar.gz | tar xzC ${DEPS}/vips --strip-components=1
@@ -489,7 +507,7 @@ PKG_CONFIG="pkg-config --static" CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O
   ${LINUX:+LDFLAGS="$LDFLAGS -Wl,-Bsymbolic-functions -Wl,--version-script=$DEPS/vips/vips.map"}
 # https://docs.fedoraproject.org/en-US/packaging-guidelines/#_removing_rpath
 sed -i'.bak' 's|^hardcode_libdir_flag_spec=.*|hardcode_libdir_flag_spec=""|g' libtool
-if [[ $PLATFORM == "linux-arm"* ]]; then
+if [ "$PLATFORM" == "linux-arm" ]; then
   # Remove -nostdlib from linker commandline options (i.e. archive_cmds
   # and archive_expsym_cmds), it won't work with -static-libstdc++
   sed -i'.bak' 's/-nostdlib//g' libtool
@@ -551,7 +569,7 @@ function copydeps {
 }
 
 cd ${TARGET}/lib
-if [[ $PLATFORM == "linux-arm"* ]]; then
+if [ "$PLATFORM" == "linux-arm" ]; then
   # Check that we really didn't link libstdc++ dynamically
   readelf -d ${VIPS_CPP_DEP} | grep -q libstdc && echo "$VIPS_CPP_DEP is dynamically linked against libstdc++" && exit 1
 fi
@@ -562,6 +580,7 @@ cd ${TARGET}
 printf "{\n\
   \"aom\": \"${VERSION_AOM}\",\n\
   \"cairo\": \"${VERSION_CAIRO}\",\n\
+  \"cgif\": \"${VERSION_CGIF}\",\n\
   \"exif\": \"${VERSION_EXIF}\",\n\
   \"expat\": \"${VERSION_EXPAT}\",\n\
   \"ffi\": \"${VERSION_FFI}\",\n\
