@@ -165,7 +165,7 @@ version_latest "exif" "$VERSION_EXIF" "1607"
 version_latest "lcms2" "$VERSION_LCMS2" "9815"
 #version_latest "mozjpeg" "$VERSION_MOZJPEG" "" # not yet in release monitoring
 version_latest "png" "$VERSION_PNG16" "1705"
-#version_latest "spng" "$VERSION_SPNG" "24289" # release monitoring still has 0.7.0
+version_latest "spng" "$VERSION_SPNG" "24289"
 version_latest "webp" "$VERSION_WEBP" "1761"
 version_latest "tiff" "$VERSION_TIFF" "1738"
 version_latest "orc" "$VERSION_ORC" "2573"
