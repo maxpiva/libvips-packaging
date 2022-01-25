@@ -104,34 +104,34 @@ unset PKG_CONFIG_PATH
 CURL="curl --silent --location --retry 3 --retry-max-time 30"
 
 # Dependency version numbers
-VERSION_ZLIB_NG=2.0.5
+VERSION_ZLIB_NG=2.0.6
 VERSION_FFI=3.4.2
-VERSION_GLIB=2.70.1
+VERSION_GLIB=2.71.0
 VERSION_XML2=2.9.12
-VERSION_GSF=1.14.47
+VERSION_GSF=1.14.48
 VERSION_EXIF=0.6.24
 VERSION_LCMS2=2.12
 VERSION_MOZJPEG=4.0.3
 VERSION_PNG16=1.6.37
 VERSION_SPNG=0.7.1
 VERSION_IMAGEQUANT=2.4.1
-VERSION_WEBP=1.2.1
+VERSION_WEBP=1.2.2
 VERSION_TIFF=4.3.0
 VERSION_ORC=0.4.32
-VERSION_PROXY_LIBINTL=0.2
+VERSION_PROXY_LIBINTL=0.3
 VERSION_GDKPIXBUF=2.42.6
-VERSION_FREETYPE=2.11.0
-VERSION_EXPAT=2.4.1
+VERSION_FREETYPE=2.11.1
+VERSION_EXPAT=2.4.3
 VERSION_FONTCONFIG=2.13.93
-VERSION_HARFBUZZ=3.1.1
+VERSION_HARFBUZZ=3.2.0
 VERSION_PIXMAN=0.40.0
 VERSION_CAIRO=1.17.4
 VERSION_FRIBIDI=1.0.11
-VERSION_PANGO=1.49.3
-VERSION_SVG=2.52.4
+VERSION_PANGO=1.50.3
+VERSION_SVG=2.52.5
 VERSION_AOM=3.2.0
 VERSION_HEIF=1.12.0
-VERSION_CGIF=0.0.2
+VERSION_CGIF=0.1.0
 
 # Remove patch version component
 without_patch() {
@@ -191,14 +191,7 @@ if [ "$DARWIN" = true ]; then
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
     | sh -s -- -y --no-modify-path --profile minimal ${DARWIN_ARM:+--default-toolchain nightly}
   if [ "$DARWIN_ARM" = true ]; then
-    ${CARGO_HOME}/bin/rustup component add rust-src 
     ${CARGO_HOME}/bin/rustup target add aarch64-apple-darwin
-
-    # Rebuild the standard library of Rust to avoid collisions with system libraries.
-    # See: https://github.com/lovell/sharp-libvips/issues/109
-    printf "[unstable]\n\
-build-std = [\"std\", \"panic_abort\"]\n\
-build-std-features = [\"panic_immediate_abort\"]" > ${CARGO_HOME}/config.toml
   fi
 fi
 
@@ -229,11 +222,9 @@ mkdir ${DEPS}/glib
 $CURL https://download.gnome.org/sources/glib/$(without_patch $VERSION_GLIB)/glib-${VERSION_GLIB}.tar.xz | tar xJC ${DEPS}/glib --strip-components=1
 cd ${DEPS}/glib
 if [ "${PLATFORM%-*}" == "linux-musl" ] || [ "$DARWIN" = true ]; then
-  $CURL https://gist.github.com/kleisauke/f6dcbf02a9aa43fd582272c3d815e7a8/raw/9cd8625c6374e0d201e6fc56010008dbb64eb8cf/glib-proxy-libintl.patch | patch -p1
+  $CURL https://gist.github.com/kleisauke/f6dcbf02a9aa43fd582272c3d815e7a8/raw/7b606ec015dd6f4dfd464b3ccf879082e740ce74/glib-proxy-libintl.patch | patch -p1
 fi
 $CURL https://gist.githubusercontent.com/lovell/7e0ce65249b951d5be400fb275de3924/raw/1a833ef4263271d299587524198b024eb5cc4f34/glib-without-gregex.patch | patch -p1
-# Use pcre from sourceforge
-sed -i'.bak' "s|ftp.pcre.org/pub/pcre|downloads.sourceforge.net/project/pcre/pcre/8.37|" subprojects/libpcre.wrap
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
   --force-fallback-for=libpcre -Dtests=false -Dinstalled_tests=false -Dlibmount=disabled -Dlibelf=disabled ${DARWIN:+-Dbsymbolic_functions=false}
 ninja -C _build
@@ -294,6 +285,8 @@ $CURL https://github.com/lovell/libheif/commit/7e1c1888023f6dd68cf33e537e7eb8e4d
 $CURL https://github.com/lovell/libheif/commit/e625a702ec7d46ce042922547d76045294af71d6.patch | git apply -
 # [PATCH] Avoid lroundf
 $CURL https://github.com/strukturag/libheif/pull/551/commits/e9004e96fbaf45b97d73e2469afd8ecfc9930ad0.patch | patch -p1
+# [PATCH] aom: verify NCLX values against known bounds
+$CURL https://github.com/strukturag/libheif/pull/583/commits/7da30e57498b2b67434abd4767377ee7b3d93ee4.patch | git apply -
 CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" ./configure \
   --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-gdk-pixbuf --disable-go --disable-examples --disable-libde265 --disable-x265
@@ -460,16 +453,6 @@ ninja -C _build install
 mkdir ${DEPS}/svg
 $CURL https://download.gnome.org/sources/librsvg/$(without_patch $VERSION_SVG)/librsvg-${VERSION_SVG}.tar.xz | tar xJC ${DEPS}/svg --strip-components=1
 cd ${DEPS}/svg
-# Allow building vendored sources with `-Zbuild-std`, see:
-# https://github.com/rust-lang/wg-cargo-std-aware/issues/23#issuecomment-720455524
-if [[ $PLATFORM == *"-arm64" ]]; then
-  RUST_SRC=$(rustc +nightly --print sysroot)/lib/rustlib/src/rust
-  RUST_TEST=$RUST_SRC/library/test
-  # Copy the Cargo.lock for Rust to places `vendor` will see
-  cp $RUST_SRC/Cargo.lock $RUST_TEST
-  # Actually do the vendor
-  cargo +nightly vendor -s $RUST_TEST/Cargo.toml
-fi
 sed -i'.bak' "s/^\(Requires:.*\)/\1 cairo-gobject pangocairo/" librsvg.pc.in
 # LTO optimization does not work for staticlib+rlib compilation
 sed -i'.bak' "s/, \"rlib\"//" Cargo.toml

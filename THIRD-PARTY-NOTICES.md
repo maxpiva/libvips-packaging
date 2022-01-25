@@ -21,6 +21,7 @@ used under the terms of the following licences:
 | libgsf        | LGPLv3                                                                                                    |
 | libheif       | LGPLv3                                                                                                    |
 | libimagequant | [BSD 2-Clause](https://github.com/lovell/libimagequant/blob/main/COPYRIGHT)                               |
+| libnsgif      | MIT Licence                                                                                               |
 | libpng        | [libpng License](https://github.com/glennrp/libpng/blob/master/LICENSE)                                   |
 | librsvg       | LGPLv3                                                                                                    |
 | libspng       | [BSD 2-Clause, libpng License](https://github.com/randy408/libspng/blob/master/LICENSE)                   |
