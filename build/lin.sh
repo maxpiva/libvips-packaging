@@ -558,7 +558,12 @@ function copydeps {
 cd ${TARGET}/lib
 if [ "$PLATFORM" == "linux-arm" ]; then
   # Check that we really didn't link libstdc++ dynamically
-  readelf -d ${VIPS_CPP_DEP} | grep -q libstdc && echo "$VIPS_CPP_DEP is dynamically linked against libstdc++" && exit 1
+  readelf -Wd ${VIPS_CPP_DEP} | grep -qF libstdc && echo "$VIPS_CPP_DEP is dynamically linked against libstdc++" && exit 1
+fi
+if [ "${PLATFORM%-*}" == "linux-musl" ]; then
+  # Check that we really compiled with -D_GLIBCXX_USE_CXX11_ABI=1
+  # This won't work on RHEL/CentOS 7: https://stackoverflow.com/a/52611576
+  readelf -Ws ${VIPS_CPP_DEP} | c++filt | grep -qF "::__cxx11::" || (echo "$VIPS_CPP_DEP mistakenly uses the C++03 ABI" && exit 1)
 fi
 copydeps ${VIPS_CPP_DEP} ${TARGET}/lib-filtered
 
