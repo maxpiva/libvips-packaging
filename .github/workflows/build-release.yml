@@ -96,7 +96,7 @@ jobs:
         run: docker save vips-dev-${{ matrix.platform }}:latest | gzip > docker-${{ matrix.platform }}.tar.gz
       - name: Upload Docker image as build artifact
         if: startsWith(matrix.platform, 'linux')
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: docker-${{ matrix.platform }}
           path: docker-${{ matrix.platform }}.tar.gz
