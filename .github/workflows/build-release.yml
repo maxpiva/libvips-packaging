@@ -35,24 +35,26 @@ jobs:
           - os: macos-11
             platform: 'osx-arm64'
     steps:
+      - name: Checkout
+        uses: actions/checkout@v3
       - name: Download previously built Docker image
         id: fetch-docker
         if: startsWith(matrix.platform, 'linux')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         # Fetching artifacts from another pipeline, or even a different run of the same pipeline,
         # is currently not well-supported in Github Actions. We must use the Github REST API to
         # download the last successful uploaded artifact.
         run: |
-          curl -s https://api.github.com/repos/${{ github.repository }}/actions/artifacts \
-            | jq 'first(.artifacts | .[] | select(.name == "docker-${{ matrix.platform }}" and .expired == false) | .archive_download_url)' -r \
-            | xargs curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -s -L -o tmp.zip || exit 0
+          gh api repos/:owner/:repo/actions/artifacts \
+            -q 'first(.artifacts|.[]|select(.name=="docker-${{ matrix.platform }}" and .expired==false)|.archive_download_url)' \
+            | xargs gh api > tmp.zip || exit 0
           unzip tmp.zip
           rm tmp.zip
           echo "::set-output name=docker_file_name::docker-${{ matrix.platform }}.tar.gz"
       - name: Load relevant image locally
         if: steps.fetch-docker.outputs.docker_file_name != ''
         run: docker load -i ${{ steps.fetch-docker.outputs.docker_file_name }} || echo "Could not load Docker image"
-      - name: Checkout
-        uses: actions/checkout@v3
       - name: Install dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
