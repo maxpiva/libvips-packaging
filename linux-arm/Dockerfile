@@ -36,13 +36,11 @@ RUN \
   pip3 install --upgrade pip && \
   pip3 install meson ninja
 
-# Download and install the latest version of crosstool-ng
-RUN \
-  git clone -b master --single-branch --depth 1 \
-    https://github.com/crosstool-ng/crosstool-ng.git
-
+# Download and install crosstool-ng 1.25.0
 WORKDIR /crosstool-ng
 RUN \
+  curl -sL https://github.com/crosstool-ng/crosstool-ng/releases/download/crosstool-ng-1.25.0/crosstool-ng-1.25.0.tar.xz | \
+    tar xJC /crosstool-ng --strip-components=1 && \
   ./bootstrap && \
   ./configure --prefix=/usr/local && \
   make -j$(nproc) && \
