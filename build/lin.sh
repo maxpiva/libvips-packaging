@@ -107,7 +107,7 @@ CURL="curl --silent --location --retry 3 --retry-max-time 30"
 VERSION_ZLIB_NG=2.0.6
 VERSION_FFI=3.4.2
 VERSION_GLIB=2.72.1
-VERSION_XML2=2.9.13
+VERSION_XML2=2.9.14
 VERSION_GSF=1.14.49
 VERSION_EXIF=0.6.24
 VERSION_LCMS2=2.13.1
@@ -118,20 +118,20 @@ VERSION_IMAGEQUANT=2.4.1
 VERSION_WEBP=1.2.2
 VERSION_TIFF=4.3.0
 VERSION_ORC=0.4.32
-VERSION_PROXY_LIBINTL=0.3
+VERSION_PROXY_LIBINTL=0.4
 VERSION_GDKPIXBUF=2.42.8
-VERSION_FREETYPE=2.12.0
+VERSION_FREETYPE=2.12.1
 VERSION_EXPAT=2.4.8
 VERSION_FONTCONFIG=2.14.0
-VERSION_HARFBUZZ=4.2.0
+VERSION_HARFBUZZ=4.2.1
 VERSION_PIXMAN=0.40.0
 VERSION_CAIRO=1.17.6
-VERSION_FRIBIDI=1.0.11
+VERSION_FRIBIDI=1.0.12
 VERSION_PANGO=1.50.7
-VERSION_SVG=2.54.0
+VERSION_SVG=2.54.1
 VERSION_AOM=3.3.0
 VERSION_HEIF=1.12.0
-VERSION_CGIF=0.2.1
+VERSION_CGIF=0.3.0
 
 # Remove patch version component
 without_patch() {
@@ -150,7 +150,11 @@ version_latest() {
   if [[ "$4" == *"unstable"* ]]; then
     VERSION_SELECTOR="versions"
   fi
-  VERSION_LATEST=$($CURL "https://release-monitoring.org/api/v2/versions/?project_id=$3" | jq -j ".$VERSION_SELECTOR[0]" | tr '_' '.')
+  if [[ "$3" == *"/"* ]]; then
+    VERSION_LATEST=$($CURL $GITHUB_AUTH_HEADER "https://api.github.com/repos/$3/tags" | jq -j ".[0].name" | tr -d 'vV')
+  else
+    VERSION_LATEST=$($CURL "https://release-monitoring.org/api/v2/versions/?project_id=$3" | jq -j ".$VERSION_SELECTOR[0]" | tr '_' '.')
+  fi
   if [ "$VERSION_LATEST" != "$2" ]; then
     ALL_AT_VERSION_LATEST=false
     echo "$1 version $2 has been superseded by $VERSION_LATEST"
@@ -163,13 +167,13 @@ version_latest "xml2" "$VERSION_XML2" "1783"
 version_latest "gsf" "$VERSION_GSF" "1980"
 version_latest "exif" "$VERSION_EXIF" "1607"
 version_latest "lcms2" "$VERSION_LCMS2" "9815"
-#version_latest "mozjpeg" "$VERSION_MOZJPEG" "" # not yet in release monitoring
+version_latest "mozjpeg" "$VERSION_MOZJPEG" "mozilla/mozjpeg"
 version_latest "png" "$VERSION_PNG16" "1705"
 version_latest "spng" "$VERSION_SPNG" "24289"
 version_latest "webp" "$VERSION_WEBP" "1761"
 version_latest "tiff" "$VERSION_TIFF" "1738"
 version_latest "orc" "$VERSION_ORC" "2573"
-#version_latest "proxy-libintl" "$VERSION_PROXY_LIBINTL" "" # not yet in release monitoring
+version_latest "proxy-libintl" "$VERSION_PROXY_LIBINTL" "frida/proxy-libintl"
 version_latest "gdkpixbuf" "$VERSION_GDKPIXBUF" "9533"
 version_latest "freetype" "$VERSION_FREETYPE" "854"
 version_latest "expat" "$VERSION_EXPAT" "770"
@@ -182,7 +186,7 @@ version_latest "pango" "$VERSION_PANGO" "11783"
 version_latest "svg" "$VERSION_SVG" "5420"
 version_latest "aom" "$VERSION_AOM" "17628"
 version_latest "heif" "$VERSION_HEIF" "64439"
-#version_latest "cgif" "$VERSION_CGIF" "" # not yet in release monitoring
+version_latest "cgif" "$VERSION_CGIF" "dloebl/cgif"
 if [ "$ALL_AT_VERSION_LATEST" = "false" ]; then exit 1; fi
 
 # Download and build dependencies from source
@@ -452,9 +456,6 @@ ninja -C _build install
 mkdir ${DEPS}/svg
 $CURL https://download.gnome.org/sources/librsvg/$(without_patch $VERSION_SVG)/librsvg-${VERSION_SVG}.tar.xz | tar xJC ${DEPS}/svg --strip-components=1
 cd ${DEPS}/svg
-# [PATCH] (#859): Make rst2man and gi-docgen optional
-$CURL https://gitlab.gnome.org/GNOME/librsvg/-/commit/8eccd72a6b07f624768e734d3eadc3a1cde14f47.patch | patch -p1
-autoreconf -fiv
 sed -i'.bak' "s/^\(Requires:.*\)/\1 cairo-gobject pangocairo/" librsvg.pc.in
 # LTO optimization does not work for staticlib+rlib compilation
 sed -i'.bak' "s/, \"rlib\"//" Cargo.toml
