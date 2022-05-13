@@ -128,7 +128,7 @@ VERSION_PIXMAN=0.40.0
 VERSION_CAIRO=1.17.6
 VERSION_FRIBIDI=1.0.12
 VERSION_PANGO=1.50.7
-VERSION_SVG=2.54.1
+VERSION_SVG=2.54.2
 VERSION_AOM=3.3.0
 VERSION_HEIF=1.12.0
 VERSION_CGIF=0.3.0
@@ -151,7 +151,7 @@ version_latest() {
     VERSION_SELECTOR="versions"
   fi
   if [[ "$3" == *"/"* ]]; then
-    VERSION_LATEST=$($CURL $GITHUB_AUTH_HEADER "https://api.github.com/repos/$3/tags" | jq -j ".[0].name" | tr -d 'vV')
+    VERSION_LATEST=$(git ls-remote --tags --refs https://github.com/$3.git | sort -t'/' -k3 -V | awk -F'/' 'END{print $3}' | tr -d 'vV')
   else
     VERSION_LATEST=$($CURL "https://release-monitoring.org/api/v2/versions/?project_id=$3" | jq -j ".$VERSION_SELECTOR[0]" | tr '_' '.')
   fi

@@ -18,6 +18,7 @@ RUN \
     binutils \
     build-base \
     cmake \
+    coreutils \
     curl \
     findutils \
     git \
