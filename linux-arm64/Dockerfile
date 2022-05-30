@@ -17,6 +17,7 @@ RUN \
   yum install -y --setopt=tsflags=nodocs \
     advancecomp \
     cmake3 \
+    # FIXME: Update to devtoolset-11, see: https://bugs.centos.org/view.php?id=18393
     devtoolset-10-gcc \
     devtoolset-10-gcc-c++ \
     glib2-devel \
@@ -29,8 +30,7 @@ RUN \
     python3 && \
   curl https://sh.rustup.rs -sSf | sh -s -- -y \
     --no-modify-path \
-    --profile minimal \
-    --default-toolchain nightly && \
+    --profile minimal && \
   rustup target add aarch64-unknown-linux-gnu && \
   ln -s /usr/bin/cmake3 /usr/bin/cmake && \
   pip3 install --upgrade pip && \

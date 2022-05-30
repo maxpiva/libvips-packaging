@@ -38,13 +38,12 @@ fi
 # Common build paths and flags
 export PKG_CONFIG_LIBDIR="${TARGET}/lib/pkgconfig"
 export PATH="${PATH}:${TARGET}/bin"
-export CPATH="${TARGET}/include"
-export LIBRARY_PATH="${TARGET}/lib"
 export LD_LIBRARY_PATH="${TARGET}/lib"
 export CFLAGS="${FLAGS}"
 export CXXFLAGS="${FLAGS}"
 export OBJCFLAGS="${FLAGS}"
 export OBJCXXFLAGS="${FLAGS}"
+export CPPFLAGS="-I${TARGET}/include"
 export LDFLAGS="-L${TARGET}/lib"
 
 # On Linux, we need to create a relocatable library
@@ -91,12 +90,6 @@ export CARGO_PROFILE_RELEASE_LTO=true
 export CARGO_PROFILE_RELEASE_OPT_LEVEL=z
 export CARGO_PROFILE_RELEASE_PANIC=abort
 
-# Workaround for https://github.com/rust-lang/compiler-builtins/issues/353
-# (applies only to ARMv7)
-if [ "$PLATFORM" == "linux-arm" ]; then
-  export LDFLAGS+=" -Wl,--allow-multiple-definition"
-fi
-
 # We don't want to use any native libraries, so unset PKG_CONFIG_PATH
 unset PKG_CONFIG_PATH
 
@@ -106,7 +99,7 @@ CURL="curl --silent --location --retry 3 --retry-max-time 30"
 # Dependency version numbers
 VERSION_ZLIB_NG=2.0.6
 VERSION_FFI=3.4.2
-VERSION_GLIB=2.72.1
+VERSION_GLIB=2.73.0
 VERSION_XML2=2.9.14
 VERSION_GSF=1.14.49
 VERSION_EXIF=0.6.24
@@ -116,19 +109,19 @@ VERSION_PNG16=1.6.37
 VERSION_SPNG=0.7.2
 VERSION_IMAGEQUANT=2.4.1
 VERSION_WEBP=1.2.2
-VERSION_TIFF=4.3.0
+VERSION_TIFF=4.4.0
 VERSION_ORC=0.4.32
 VERSION_PROXY_LIBINTL=0.4
 VERSION_GDKPIXBUF=2.42.8
 VERSION_FREETYPE=2.12.1
 VERSION_EXPAT=2.4.8
 VERSION_FONTCONFIG=2.14.0
-VERSION_HARFBUZZ=4.2.1
+VERSION_HARFBUZZ=4.3.0
 VERSION_PIXMAN=0.40.0
 VERSION_CAIRO=1.17.6
 VERSION_FRIBIDI=1.0.12
 VERSION_PANGO=1.50.7
-VERSION_SVG=2.54.2
+VERSION_SVG=2.54.3
 VERSION_AOM=3.3.0
 VERSION_HEIF=1.12.0
 VERSION_CGIF=0.3.0
@@ -193,7 +186,7 @@ if [ "$ALL_AT_VERSION_LATEST" = "false" ]; then exit 1; fi
 
 if [ "$DARWIN" = true ]; then
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-    | sh -s -- -y --no-modify-path --profile minimal ${DARWIN_ARM:+--default-toolchain nightly}
+    | sh -s -- -y --no-modify-path --profile minimal
   if [ "$DARWIN_ARM" = true ]; then
     ${CARGO_HOME}/bin/rustup target add aarch64-apple-darwin
   fi
@@ -235,11 +228,10 @@ ninja -C _build
 ninja -C _build install
 
 mkdir ${DEPS}/xml2
-$CURL https://download.gnome.org/sources/libxml2/2.9/libxml2-${VERSION_XML2}.tar.xz | tar xJC ${DEPS}/xml2 --strip-components=1
+$CURL https://download.gnome.org/sources/libxml2/$(without_patch $VERSION_XML2)/libxml2-${VERSION_XML2}.tar.xz | tar xJC ${DEPS}/xml2 --strip-components=1
 cd ${DEPS}/xml2
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
-  --with-minimum --with-reader --with-writer --with-valid --with-http --with-tree --without-python --without-lzma \
-  --with-zlib=${TARGET}
+  --with-minimum --with-reader --with-writer --with-valid --with-http --with-tree --with-zlib --without-python --without-lzma
 make install-strip
 
 mkdir ${DEPS}/gsf
@@ -248,7 +240,7 @@ cd ${DEPS}/gsf
 # Skip unused subdirs
 sed -i'.bak' "s/ doc tools tests thumbnailer python//" Makefile.in
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
-  --without-bz2 --without-gdk-pixbuf --disable-nls --without-libiconv-prefix --without-libintl-prefix --with-zlib=${TARGET}
+  --without-bz2 --without-gdk-pixbuf --disable-nls --without-libiconv-prefix --without-libintl-prefix
 make install-strip
 
 mkdir ${DEPS}/exif
@@ -256,7 +248,7 @@ $CURL https://github.com/libexif/libexif/releases/download/v${VERSION_EXIF}/libe
 cd ${DEPS}/exif
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-nls --without-libiconv-prefix --without-libintl-prefix \
-  CPPFLAGS="-DNO_VERBOSE_TAG_DATA"
+  CPPFLAGS="${CPPFLAGS} -DNO_VERBOSE_TAG_DATA"
 make install-strip
 
 mkdir ${DEPS}/lcms2
@@ -282,15 +274,16 @@ mkdir ${DEPS}/heif
 $CURL https://github.com/strukturag/libheif/releases/download/v${VERSION_HEIF}/libheif-${VERSION_HEIF}.tar.gz | tar xzC ${DEPS}/heif --strip-components=1
 cd ${DEPS}/heif
 # [PATCH] aom encoder: improve performance by ~2x using new 'all intra'
-$CURL https://github.com/lovell/libheif/commit/de0c159a60c2c50931321f06e36a3b6640c5c807.patch | patch -p1
+$CURL https://github.com/strukturag/libheif/commit/de0c159a60c2c50931321f06e36a3b6640c5c807.patch | patch -p1
 # [PATCH] aom: expose decoder error messages
-$CURL https://github.com/lovell/libheif/commit/7e1c1888023f6dd68cf33e537e7eb8e4d5e17588.patch | patch -p1
+$CURL https://github.com/strukturag/libheif/commit/7e1c1888023f6dd68cf33e537e7eb8e4d5e17588.patch | patch -p1
 # [PATCH] Detect and prevent negative overflow of clap box dimensions
-$CURL https://github.com/lovell/libheif/commit/e625a702ec7d46ce042922547d76045294af71d6.patch | git apply -
+$CURL https://github.com/strukturag/libheif/commit/e625a702ec7d46ce042922547d76045294af71d6.patch | git apply -
 # [PATCH] Avoid lroundf
-$CURL https://github.com/strukturag/libheif/pull/551/commits/e9004e96fbaf45b97d73e2469afd8ecfc9930ad0.patch | patch -p1
-# [PATCH] aom: verify NCLX values against known bounds
-$CURL https://github.com/strukturag/libheif/pull/583/commits/80300f8c8b4edb4e214a94668eeb9b88cba95774.patch | git apply -
+$CURL https://github.com/strukturag/libheif/commit/499a0a31d79936042c7abeef2513bb0b56b81489.patch | patch -p1
+# [PATCH] Add API to sanitize enums relating to color profiles
+$CURL https://github.com/kleisauke/libheif/commit/0d44224914946a00d293c08bbaf4553acc985802.patch | patch -p1
+autoreconf -fiv
 CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" ./configure \
   --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-gdk-pixbuf --disable-go --disable-examples --disable-libde265 --disable-x265
@@ -333,17 +326,16 @@ mkdir ${DEPS}/webp
 $CURL https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-${VERSION_WEBP}.tar.gz | tar xzC ${DEPS}/webp --strip-components=1
 cd ${DEPS}/webp
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
-  --disable-neon --enable-libwebpmux --enable-libwebpdemux
+  --enable-libwebpmux --enable-libwebpdemux ${WITHOUT_NEON:+--disable-neon}
 make install-strip
 
 mkdir ${DEPS}/tiff
 $CURL https://download.osgeo.org/libtiff/tiff-${VERSION_TIFF}.tar.gz | tar xzC ${DEPS}/tiff --strip-components=1 \
   || (echo "Failed to download libtiff, using mirror" && $CURL https://fossies.org/linux/misc/tiff-${VERSION_TIFF}.tar.gz | tar xzC ${DEPS}/tiff --strip-components=1)
 cd ${DEPS}/tiff
-if [ -n "${CHOST}" ]; then autoreconf -fiv; fi
-./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
-  --disable-mdi --disable-pixarlog --disable-old-jpeg --disable-cxx --disable-lzma --disable-zstd \
-  --with-jpeg-include-dir=${TARGET}/include --with-jpeg-lib-dir=${TARGET}/lib
+# Propagate -pthread into CFLAGS to ensure WebP support
+CFLAGS="${CFLAGS} -pthread" ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
+  --disable-mdi --disable-pixarlog --disable-old-jpeg --disable-cxx --disable-lzma --disable-zstd
 make install-strip
 
 mkdir ${DEPS}/orc
@@ -369,9 +361,6 @@ sed -i'.bak' "/loaders_cache = custom/{N;N;N;N;N;N;N;N;N;c\\
   loaders_cache = []\\
   loaders_dep = declare_dependency()
 }" gdk-pixbuf/meson.build
-# Ensure meson can find libjpeg when cross-compiling
-sed -i'.bak' "s/has_header('jpeglib.h')/has_header('jpeglib.h', args: '-I\/target\/include')/g" meson.build
-sed -i'.bak' "s/cc.find_library('jpeg'/dependency('libjpeg'/g" meson.build
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
   -Dtiff=disabled -Dintrospection=disabled -Dinstalled_tests=false -Dgio_sniffing=false -Dman=false -Dbuiltin_loaders=png,jpeg
 ninja -C _build
