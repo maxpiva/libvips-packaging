@@ -1,7 +1,7 @@
-FROM alpine:3.11
+FROM alpine:3.12
 LABEL maintainer="Kleis Auke Wolthuizen <info@kleisauke.nl>"
 
-# Create Alpine 3.11 (musl 1.1.24) container suitable for cross-compiling musl-based Linux ARM64v8-A binaries
+# Create Alpine 3.12 (musl 1.1.24) container suitable for cross-compiling musl-based Linux ARM64v8-A binaries
 
 # Path settings
 ENV \
@@ -22,20 +22,14 @@ RUN \
     curl \
     findutils \
     git \
-    glib-dev \
-    gobject-introspection-dev \
-    gperf \
-    gtk-doc \
-    intltool \
     jq \
     libtool \
     linux-headers \
     nasm \
     ninja \
-    python3 \
+    pkgconf \
     py3-pip \
-    shared-mime-info \
-    texinfo && \
+    python3 && \
   apk --update --no-cache --repository https://alpine.global.ssl.fastly.net/alpine/edge/community/ add advancecomp && \
   curl -Ls https://github.com/lovell/aarch64-linux-musl-crosstools/archive/main.tar.gz | tar -hxzC / --strip-components=2 && \
   ln -s /usr/bin/pkg-config /bin/aarch64-linux-musl-pkg-config && \
@@ -47,7 +41,7 @@ RUN \
 
 # Compiler settings
 ENV \
-  PKG_CONFIG="aarch64-linux-musl-pkg-config" \
+  PKG_CONFIG="aarch64-linux-musl-pkg-config --static" \
   PLATFORM="linux-musl-arm64" \
   CHOST="aarch64-linux-musl" \
   RUST_TARGET="aarch64-unknown-linux-musl" \

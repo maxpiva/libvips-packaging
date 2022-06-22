@@ -20,13 +20,8 @@ RUN \
     # FIXME: Update to devtoolset-11, see: https://bugs.centos.org/view.php?id=18393
     devtoolset-10-gcc \
     devtoolset-10-gcc-c++ \
-    glib2-devel \
-    gobject-introspection-devel \
-    gperf \
-    gtk-doc \
     jq \
     nasm \
-    prelink \
     python3 && \
   curl https://sh.rustup.rs -sSf | sh -s -- -y \
     --no-modify-path \
@@ -38,6 +33,7 @@ RUN \
 
 # Compiler settings
 ENV \
+  PKG_CONFIG="pkg-config --static" \
   PLATFORM="linux-arm64" \
   CARGO_BUILD_TARGET="aarch64-unknown-linux-gnu" \
   FLAGS="-march=armv8-a" \

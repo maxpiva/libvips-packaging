@@ -49,7 +49,7 @@ export LDFLAGS="-L${TARGET}/lib"
 # On Linux, we need to create a relocatable library
 # Note: this is handled for macOS using the `install_name_tool` (see below)
 if [ "$LINUX" = true ]; then
-  export LDFLAGS+=" -Wl,--gc-sections -Wl,-rpath='\$\$ORIGIN/'"
+  export LDFLAGS+=" -Wl,--gc-sections -Wl,-rpath=\$ORIGIN/"
 fi
 
 # The ARMv7 binaries needs to be statically linked against libstdc++, since
@@ -59,9 +59,7 @@ if [ "$PLATFORM" == "linux-arm" ]; then
   export LDFLAGS+=" -static-libstdc++"
 fi
 
-# On macOS, we need to explicitly link against the system libraries
 if [ "$DARWIN" = true ]; then
-  export LDFLAGS+=" -framework CoreServices -framework CoreFoundation -framework Foundation -framework AppKit"
   # Local rust installation
   export CARGO_HOME="${DEPS}/cargo"
   export RUSTUP_HOME="${DEPS}/rustup"
@@ -70,8 +68,6 @@ if [ "$DARWIN" = true ]; then
   export PATH="${CARGO_HOME}/bin:${PATH}"
   if [ "$PLATFORM" == "osx-arm64" ]; then
     export DARWIN_ARM=true
-    # We need to explicitly tell meson about pkg-config when cross compiling on macOS
-    export PKG_CONFIG="$(brew --prefix)/bin/pkg-config"
   fi
 fi
 
@@ -99,7 +95,7 @@ CURL="curl --silent --location --retry 3 --retry-max-time 30"
 # Dependency version numbers
 VERSION_ZLIB_NG=2.0.6
 VERSION_FFI=3.4.2
-VERSION_GLIB=2.73.0
+VERSION_GLIB=2.73.1
 VERSION_XML2=2.9.14
 VERSION_GSF=1.14.49
 VERSION_EXIF=0.6.24
@@ -121,8 +117,8 @@ VERSION_PIXMAN=0.40.0
 VERSION_CAIRO=1.17.6
 VERSION_FRIBIDI=1.0.12
 VERSION_PANGO=1.50.7
-VERSION_SVG=2.54.3
-VERSION_AOM=3.3.0
+VERSION_SVG=2.54.4
+VERSION_AOM=3.4.0
 VERSION_HEIF=1.12.0
 VERSION_CGIF=0.3.0
 
@@ -193,6 +189,8 @@ if [ "$DARWIN" = true ]; then
 fi
 
 if [ "${PLATFORM%-*}" == "linux-musl" ] || [ "$DARWIN" = true ]; then
+  # musl and macOS requires the standalone intl support library of gettext, since it's not provided by libc (like GNU).
+  # We use a stub version of gettext instead, since we don't need any of the i18n features.
   mkdir ${DEPS}/proxy-libintl
   $CURL https://github.com/frida/proxy-libintl/archive/${VERSION_PROXY_LIBINTL}.tar.gz | tar xzC ${DEPS}/proxy-libintl --strip-components=1
   cd ${DEPS}/proxy-libintl
@@ -218,8 +216,8 @@ make install-strip
 mkdir ${DEPS}/glib
 $CURL https://download.gnome.org/sources/glib/$(without_patch $VERSION_GLIB)/glib-${VERSION_GLIB}.tar.xz | tar xJC ${DEPS}/glib --strip-components=1
 cd ${DEPS}/glib
-if [ "${PLATFORM%-*}" == "linux-musl" ] || [ "$DARWIN" = true ]; then
-  $CURL https://gist.github.com/kleisauke/f6dcbf02a9aa43fd582272c3d815e7a8/raw/62c92abbca60e98ebdf289e456d034d6c20e607a/glib-proxy-libintl.patch | patch -p1
+if [ "$DARWIN" = true ]; then
+  $CURL https://gist.github.com/kleisauke/f6dcbf02a9aa43fd582272c3d815e7a8/raw/7d0e8324ad6c918978337bb6d180a93e01426845/glib-proxy-libintl.patch | patch -p1
 fi
 $CURL https://gist.githubusercontent.com/lovell/7e0ce65249b951d5be400fb275de3924/raw/1a833ef4263271d299587524198b024eb5cc4f34/glib-without-gregex.patch | patch -p1
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
@@ -454,10 +452,12 @@ sed -i'.bak' "/SCRIPTS = /d" Makefile.in
 if [ -n "$CARGO_BUILD_TARGET" ]; then
   sed -i'.bak' "s/@RUST_TARGET_SUBDIR@/$CARGO_BUILD_TARGET\/@RUST_TARGET_SUBDIR@/" Makefile.in
 fi
-./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
+# Remove the --static flag from the PKG_CONFIG env since Rust does not
+# support that. Build with PKG_CONFIG_ALL_STATIC=1 instead.
+PKG_CONFIG=${PKG_CONFIG/ --static/} ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-introspection --disable-tools --disable-pixbuf-loader --disable-nls --without-libiconv-prefix --without-libintl-prefix \
   ${DARWIN:+--disable-Bsymbolic}
-make install-strip
+PKG_CONFIG_ALL_STATIC=1 make install-strip
 
 mkdir ${DEPS}/cgif
 $CURL https://github.com/dloebl/cgif/archive/V${VERSION_CGIF}.tar.gz | tar xzC ${DEPS}/cgif --strip-components=1
@@ -468,35 +468,30 @@ ninja -C _build
 ninja -C _build install
 
 mkdir ${DEPS}/vips
-$CURL https://github.com/libvips/libvips/releases/download/v${VERSION_VIPS}/vips-${VERSION_VIPS}.tar.gz | tar xzC ${DEPS}/vips --strip-components=1
+# TODO: Use the tarball for the next release https://github.com/libvips/libvips/issues/2876
+#$CURL https://github.com/libvips/libvips/releases/download/v${VERSION_VIPS}/vips-${VERSION_VIPS}.tar.gz | tar xzC ${DEPS}/vips --strip-components=1
+$CURL https://github.com/libvips/libvips/archive/refs/tags/v${VERSION_VIPS}.tar.gz | tar xzC ${DEPS}/vips --strip-components=1
 cd ${DEPS}/vips
-# Prevent exporting the g_param_spec_types symbol to avoid collisions with shared libraries
-printf "{\n\
-local:\n\
-    g_param_spec_types;\n\
-};" > vips.map
-PKG_CONFIG="pkg-config --static" CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" ./configure \
-  --host=${CHOST} --prefix=${TARGET} --enable-shared --disable-static --disable-dependency-tracking \
-  --disable-debug --disable-deprecated --disable-introspection --disable-modules --without-doxygen \
-  --without-analyze --without-cfitsio --without-fftw --without-libjxl --without-libopenjp2 \
-  --without-magick --without-matio --without-nifti --without-OpenEXR \
-  --without-openslide --without-pdfium --without-poppler --without-ppm --without-radiance \
-  ${LINUX:+LDFLAGS="$LDFLAGS -Wl,-Bsymbolic-functions -Wl,--version-script=$DEPS/vips/vips.map"}
-# https://docs.fedoraproject.org/en-US/packaging-guidelines/#_removing_rpath
-sed -i'.bak' 's|^hardcode_libdir_flag_spec=.*|hardcode_libdir_flag_spec=""|g' libtool
-if [ "$PLATFORM" == "linux-arm" ]; then
-  # Remove -nostdlib from linker commandline options (i.e. archive_cmds
-  # and archive_expsym_cmds), it won't work with -static-libstdc++
-  sed -i'.bak' 's/-nostdlib//g' libtool
-  # Standard system libraries are used when -nostdlib is not specified,
-  # so we can safely comment out {pre,post}dep_objects and postdeps
-  # See: https://src.fedoraproject.org/rpms/mesa/c/cf99e4b75f8f817f7cc610b266b907d4eecca841
-  sed -i'.bak' 's/^predep_objects=.*$/#&/' libtool
-  sed -i'.bak' 's/^postdep_objects=.*$/#&/' libtool
-  sed -i'.bak' 's/^postdeps=.*$/#&/' libtool
+if [ "$LINUX" = true ]; then
+  # Ensure symbols from external libs (except for libglib-2.0.a and libgobject-2.0.a) are not exposed
+  EXCLUDE_LIBS=$(find ${TARGET}/lib -maxdepth 1 -name '*.a' ! -name 'libglib-2.0.a' ! -name 'libgobject-2.0.a' -printf "-Wl,--exclude-libs=%f ")
+  EXCLUDE_LIBS=${EXCLUDE_LIBS%?}
+  # Localize the g_param_spec_types symbol to avoid collisions with shared libraries
+  # See: https://github.com/lovell/sharp/issues/2535#issuecomment-766400693
+  printf "{local:g_param_spec_types;};" > vips.map
+elif [ "$DARWIN" = true ]; then
+  # https://github.com/pybind/pybind11/issues/595
+  export STRIP="strip -x"
 fi
-make -C 'libvips' install-strip
-make -C 'cplusplus' install-strip
+# Disable building man pages, gettext po files, tools, and (fuzz-)tests
+sed -i'.bak' "/subdir('man')/{N;N;N;N;d;}" meson.build
+CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" meson setup _build --default-library=shared --buildtype=release --strip --prefix=${TARGET} ${MESON} \
+  -Ddeprecated=false -Dintrospection=false -Dmodules=disabled -Dcfitsio=disabled -Dfftw=disabled -Djpeg-xl=disabled \
+  -Dmagick=disabled -Dmatio=disabled -Dnifti=disabled -Dopenexr=disabled -Dopenjpeg=disabled -Dopenslide=disabled \
+  -Dpdfium=disabled -Dpoppler=disabled -Dquantizr=disabled -Dppm=false -Danalyze=false -Dradiance=false \
+  ${LINUX:+-Dcpp_link_args="$LDFLAGS -Wl,-Bsymbolic-functions -Wl,--version-script=$DEPS/vips/vips.map $EXCLUDE_LIBS"}
+ninja -C _build
+ninja -C _build install
 
 # Cleanup
 rm -rf ${TARGET}/lib/{pkgconfig,.libs,*.la,cmake}

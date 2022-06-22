@@ -17,17 +17,15 @@ RUN \
   yum install -y --setopt=tsflags=nodocs \
     advancecomp \
     cmake3 \
-    glib2-devel \
-    gobject-introspection-devel \
-    gperf \
-    gtk-doc \
-    help2man \
     jq \
     nasm \
+    # Needed by crosstool-ng
+    gperf \
+    help2man \
     ncurses-devel \
-    prelink \
     python3-devel \
-    texinfo && \
+    texinfo \
+    which && \
   curl https://sh.rustup.rs -sSf | sh -s -- -y \
     --no-modify-path \
     --profile minimal && \
@@ -69,6 +67,7 @@ ENV \
   STRIP="armv7-unknown-linux-gnueabihf-strip" \
   RANLIB="armv7-unknown-linux-gnueabihf-ranlib" \
   OBJDUMP="armv7-unknown-linux-gnueabihf-objdump" \
+  PKG_CONFIG="pkg-config --static" \
   PLATFORM="linux-arm" \
   CHOST="arm-linux-gnueabihf" \
   RUST_TARGET="arm-unknown-linux-gnueabihf" \

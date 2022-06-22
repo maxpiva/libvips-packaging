@@ -1,7 +1,7 @@
-FROM alpine:3.11
+FROM alpine:3.12
 LABEL maintainer="Kleis Auke Wolthuizen <info@kleisauke.nl>"
 
-# Create Alpine 3.11 (musl 1.1.24) container suitable for building Linux x64 binaries
+# Create Alpine 3.12 (musl 1.1.24) container suitable for building Linux x64 binaries
 
 # Path settings
 ENV \
@@ -22,19 +22,14 @@ RUN \
     curl \
     findutils \
     git \
-    glib-dev \
-    gobject-introspection-dev \
-    gperf \
-    gtk-doc \
-    intltool \
     jq \
     libtool \
     linux-headers \
     nasm \
     ninja \
-    python3 \
-    shared-mime-info \
-    texinfo && \
+    pkgconf \
+    py3-pip \
+    python3 && \
   apk --update --no-cache --repository https://alpine.global.ssl.fastly.net/alpine/edge/community/ add advancecomp && \
   curl https://sh.rustup.rs -sSf | sh -s -- -y \
     --no-modify-path \
@@ -43,6 +38,7 @@ RUN \
 
 # Compiler settings
 ENV \
+  PKG_CONFIG="pkg-config --static" \
   PLATFORM="linux-musl-x64" \
   FLAGS="-march=westmere"
 
