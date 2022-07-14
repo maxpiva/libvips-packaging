@@ -8,6 +8,6 @@ integrity() {
   printf "$CHECKSUM" > $1.integrity
 }
 
-for tarball in *.tar.gz; do
+for tarball in libvips*.tar.gz; do
   integrity $tarball
 done
