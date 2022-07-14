@@ -72,7 +72,9 @@ ENV \
   CHOST="arm-linux-gnueabihf" \
   RUST_TARGET="arm-unknown-linux-gnueabihf" \
   FLAGS="-marm -march=armv7-a -mfpu=neon-vfpv4 -mfloat-abi=hard" \
-  MESON="--cross-file=/root/meson.ini"
+  MESON="--cross-file=/root/meson.ini" \
+  # https://gitlab.gnome.org/GNOME/glib/-/issues/2693
+  PYTHONIOENCODING="UTF-8"
 
 COPY Toolchain.cmake /root/
 COPY meson.ini /root/

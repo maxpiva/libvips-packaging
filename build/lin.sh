@@ -95,9 +95,9 @@ CURL="curl --silent --location --retry 3 --retry-max-time 30"
 # Dependency version numbers
 VERSION_ZLIB_NG=2.0.6
 VERSION_FFI=3.4.2
-VERSION_GLIB=2.73.1
+VERSION_GLIB=2.73.2
 VERSION_XML2=2.9.14
-VERSION_GSF=1.14.49
+VERSION_GSF=1.14.50
 VERSION_EXIF=0.6.24
 VERSION_LCMS2=2.13.1
 VERSION_MOZJPEG=4.0.3
@@ -112,11 +112,11 @@ VERSION_GDKPIXBUF=2.42.8
 VERSION_FREETYPE=2.12.1
 VERSION_EXPAT=2.4.8
 VERSION_FONTCONFIG=2.14.0
-VERSION_HARFBUZZ=4.3.0
+VERSION_HARFBUZZ=4.4.1
 VERSION_PIXMAN=0.40.0
 VERSION_CAIRO=1.17.6
 VERSION_FRIBIDI=1.0.12
-VERSION_PANGO=1.50.7
+VERSION_PANGO=1.50.8
 VERSION_SVG=2.54.4
 VERSION_AOM=3.4.0
 VERSION_HEIF=1.12.0
@@ -217,11 +217,15 @@ mkdir ${DEPS}/glib
 $CURL https://download.gnome.org/sources/glib/$(without_patch $VERSION_GLIB)/glib-${VERSION_GLIB}.tar.xz | tar xJC ${DEPS}/glib --strip-components=1
 cd ${DEPS}/glib
 if [ "$DARWIN" = true ]; then
-  $CURL https://gist.github.com/kleisauke/f6dcbf02a9aa43fd582272c3d815e7a8/raw/7d0e8324ad6c918978337bb6d180a93e01426845/glib-proxy-libintl.patch | patch -p1
+  $CURL https://gist.github.com/kleisauke/f6dcbf02a9aa43fd582272c3d815e7a8/raw/75b1e06250bdb0df067be4a5db54df960f35c46d/glib-proxy-libintl.patch | patch -p1
 fi
-$CURL https://gist.githubusercontent.com/lovell/7e0ce65249b951d5be400fb275de3924/raw/1a833ef4263271d299587524198b024eb5cc4f34/glib-without-gregex.patch | patch -p1
+if [ "${PLATFORM%-*}" == "linux-musl" ]; then
+  # https://gitlab.gnome.org/GNOME/glib/-/issues/2692
+  $CURL https://gitlab.gnome.org/GNOME/glib/-/commit/871e5708679b96e63ee574f5c74e0e746f4be9a4.patch | patch -p1
+fi
+$CURL https://gist.github.com/kleisauke/284d685efa00908da99ea6afbaaf39ae/raw/af997aa5b6bdb27484c6d9f16d9255d79c86aa77/glib-without-gregex.patch | patch -p1
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
-  --force-fallback-for=libpcre -Dtests=false -Dinstalled_tests=false -Dlibmount=disabled -Dlibelf=disabled ${DARWIN:+-Dbsymbolic_functions=false}
+  --force-fallback-for=gvdb -Dnls=disabled -Dtests=false -Dinstalled_tests=false -Dlibmount=disabled -Dlibelf=disabled ${DARWIN:+-Dbsymbolic_functions=false}
 ninja -C _build
 ninja -C _build install
 
@@ -302,7 +306,7 @@ make install/strip
 mkdir ${DEPS}/png16
 $CURL https://downloads.sourceforge.net/project/libpng/libpng16/${VERSION_PNG16}/libpng-${VERSION_PNG16}.tar.xz | tar xJC ${DEPS}/png16 --strip-components=1
 cd ${DEPS}/png16
-CFLAGS="${CFLAGS} -O3" ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking
+./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking
 make install-strip
 
 mkdir ${DEPS}/spng
@@ -394,6 +398,10 @@ ninja -C _build install
 mkdir ${DEPS}/harfbuzz
 $CURL https://github.com/harfbuzz/harfbuzz/archive/${VERSION_HARFBUZZ}.tar.gz | tar xzC ${DEPS}/harfbuzz --strip-components=1
 cd ${DEPS}/harfbuzz
+# https://github.com/harfbuzz/harfbuzz/pull/3707
+$CURL https://github.com/kleisauke/harfbuzz/commit/94bfd2ff7a4b4e7949f0ac0834b2bf38a1feea12.patch | patch -p1
+$CURL https://github.com/kleisauke/harfbuzz/commit/43f5ee43753cf4df5dc7811fc8a464f97a4551c2.patch | patch -p1
+$CURL https://github.com/kleisauke/harfbuzz/commit/23aa63c955202fc7e8caac59c0c656edddc84dba.patch | patch -p1
 # Disable utils
 sed -i'.bak' "/subdir('util')/d" meson.build
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
@@ -468,9 +476,7 @@ ninja -C _build
 ninja -C _build install
 
 mkdir ${DEPS}/vips
-# TODO: Use the tarball for the next release https://github.com/libvips/libvips/issues/2876
-#$CURL https://github.com/libvips/libvips/releases/download/v${VERSION_VIPS}/vips-${VERSION_VIPS}.tar.gz | tar xzC ${DEPS}/vips --strip-components=1
-$CURL https://github.com/libvips/libvips/archive/refs/tags/v${VERSION_VIPS}.tar.gz | tar xzC ${DEPS}/vips --strip-components=1
+$CURL https://github.com/libvips/libvips/releases/download/v${VERSION_VIPS}/vips-${VERSION_VIPS}.tar.gz | tar xzC ${DEPS}/vips --strip-components=1
 cd ${DEPS}/vips
 if [ "$LINUX" = true ]; then
   # Ensure symbols from external libs (except for libglib-2.0.a and libgobject-2.0.a) are not exposed

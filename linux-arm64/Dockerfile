@@ -37,7 +37,9 @@ ENV \
   PLATFORM="linux-arm64" \
   CARGO_BUILD_TARGET="aarch64-unknown-linux-gnu" \
   FLAGS="-march=armv8-a" \
-  MESON="--cross-file=/root/meson.ini"
+  MESON="--cross-file=/root/meson.ini" \
+  # https://gitlab.gnome.org/GNOME/glib/-/issues/2693
+  PYTHONIOENCODING="UTF-8"
 
 COPY Toolchain.cmake /root/
 COPY meson.ini /root/
