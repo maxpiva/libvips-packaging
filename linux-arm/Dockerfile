@@ -7,31 +7,32 @@ LABEL maintainer="Kleis Auke Wolthuizen <info@kleisauke.nl>"
 ENV \
   RUSTUP_HOME="/usr/local/rustup" \
   CARGO_HOME="/usr/local/cargo" \
-  PATH="/usr/local/cargo/bin:/x-tools/armv7-unknown-linux-gnueabihf/bin:$PATH"
+  PATH="/usr/local/cargo/bin:/x-tools/armv7-unknown-linux-gnueabihf/bin:/opt/rh/rh-python38/root/usr/bin:/opt/rh/rh-python38/root/usr/local/bin:$PATH"
 
 # Build dependencies
 RUN \
   yum update -y && \
-  yum install -y epel-release && \
+  yum install -y epel-release centos-release-scl && \
   yum group install -y "Development Tools" && \
   yum install -y --setopt=tsflags=nodocs \
     advancecomp \
     cmake3 \
+    gperf \
     jq \
     nasm \
+    rh-python38 \
     # Needed by crosstool-ng
-    gperf \
     help2man \
     ncurses-devel \
-    python3-devel \
     texinfo \
-    which && \
+    which \
+    && \
   curl https://sh.rustup.rs -sSf | sh -s -- -y \
     --no-modify-path \
-    --profile minimal && \
+    --profile minimal \
+    && \
   rustup target add arm-unknown-linux-gnueabihf && \
   ln -s /usr/bin/cmake3 /usr/bin/cmake && \
-  pip3 install --upgrade pip && \
   pip3 install meson ninja
 
 # Download and install crosstool-ng 1.25.0
@@ -72,9 +73,7 @@ ENV \
   CHOST="arm-linux-gnueabihf" \
   RUST_TARGET="arm-unknown-linux-gnueabihf" \
   FLAGS="-marm -march=armv7-a -mfpu=neon-vfpv4 -mfloat-abi=hard" \
-  MESON="--cross-file=/root/meson.ini" \
-  # https://gitlab.gnome.org/GNOME/glib/-/issues/2693
-  PYTHONIOENCODING="UTF-8"
+  MESON="--cross-file=/root/meson.ini"
 
 COPY Toolchain.cmake /root/
 COPY meson.ini /root/

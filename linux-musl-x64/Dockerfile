@@ -22,6 +22,7 @@ RUN \
     curl \
     findutils \
     git \
+    gperf \
     jq \
     libtool \
     linux-headers \
@@ -29,11 +30,13 @@ RUN \
     ninja \
     pkgconf \
     py3-pip \
-    python3 && \
+    python3 \
+    && \
   apk --update --no-cache --repository https://alpine.global.ssl.fastly.net/alpine/edge/community/ add advancecomp && \
   curl https://sh.rustup.rs -sSf | sh -s -- -y \
     --no-modify-path \
-    --profile minimal && \
+    --profile minimal \
+    && \
   pip3 install meson
 
 # Compiler settings

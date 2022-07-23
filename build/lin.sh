@@ -104,7 +104,7 @@ VERSION_MOZJPEG=4.0.3
 VERSION_PNG16=1.6.37
 VERSION_SPNG=0.7.2
 VERSION_IMAGEQUANT=2.4.1
-VERSION_WEBP=1.2.2
+VERSION_WEBP=1.2.3
 VERSION_TIFF=4.4.0
 VERSION_ORC=0.4.32
 VERSION_PROXY_LIBINTL=0.4
@@ -547,6 +547,10 @@ function copydeps {
 }
 
 cd ${TARGET}/lib
+if [ "$LINUX" = true ]; then
+  # Check that we really linked with -z nodelete
+  readelf -Wd libvips.so.42 | grep -qF NODELETE || (echo "libvips.so.42 was not linked with -z nodelete" && exit 1)
+fi
 if [ "$PLATFORM" == "linux-arm" ]; then
   # Check that we really didn't link libstdc++ dynamically
   readelf -Wd ${VIPS_CPP_DEP} | grep -qF libstdc && echo "$VIPS_CPP_DEP is dynamically linked against libstdc++" && exit 1
