@@ -95,31 +95,31 @@ CURL="curl --silent --location --retry 3 --retry-max-time 30"
 # Dependency version numbers
 VERSION_ZLIB_NG=2.0.6
 VERSION_FFI=3.4.2
-VERSION_GLIB=2.73.2
-VERSION_XML2=2.9.14
+VERSION_GLIB=2.73.3
+VERSION_XML2=2.10.2
 VERSION_GSF=1.14.50
 VERSION_EXIF=0.6.24
 VERSION_LCMS2=2.13.1
-VERSION_MOZJPEG=4.0.3
+VERSION_MOZJPEG=4.1.1
 VERSION_PNG16=1.6.37
 VERSION_SPNG=0.7.2
 VERSION_IMAGEQUANT=2.4.1
-VERSION_WEBP=1.2.3
+VERSION_WEBP=1.2.4
 VERSION_TIFF=4.4.0
 VERSION_ORC=0.4.32
 VERSION_PROXY_LIBINTL=0.4
-VERSION_GDKPIXBUF=2.42.8
+VERSION_GDKPIXBUF=2.42.9
 VERSION_FREETYPE=2.12.1
 VERSION_EXPAT=2.4.8
 VERSION_FONTCONFIG=2.14.0
-VERSION_HARFBUZZ=4.4.1
+VERSION_HARFBUZZ=5.1.0
 VERSION_PIXMAN=0.40.0
 VERSION_CAIRO=1.17.6
 VERSION_FRIBIDI=1.0.12
-VERSION_PANGO=1.50.8
-VERSION_SVG=2.54.4
+VERSION_PANGO=1.50.9
+VERSION_SVG=2.54.5
 VERSION_AOM=3.4.0
-VERSION_HEIF=1.12.0
+VERSION_HEIF=1.13.0
 VERSION_CGIF=0.3.0
 
 # Remove patch version component
@@ -174,7 +174,7 @@ version_latest "fribidi" "$VERSION_FRIBIDI" "857"
 version_latest "pango" "$VERSION_PANGO" "11783"
 version_latest "svg" "$VERSION_SVG" "5420"
 version_latest "aom" "$VERSION_AOM" "17628"
-version_latest "heif" "$VERSION_HEIF" "64439"
+version_latest "heif" "$VERSION_HEIF" "strukturag/libheif"
 version_latest "cgif" "$VERSION_CGIF" "dloebl/cgif"
 if [ "$ALL_AT_VERSION_LATEST" = "false" ]; then exit 1; fi
 
@@ -219,10 +219,8 @@ cd ${DEPS}/glib
 if [ "$DARWIN" = true ]; then
   $CURL https://gist.github.com/kleisauke/f6dcbf02a9aa43fd582272c3d815e7a8/raw/75b1e06250bdb0df067be4a5db54df960f35c46d/glib-proxy-libintl.patch | patch -p1
 fi
-if [ "${PLATFORM%-*}" == "linux-musl" ]; then
-  # https://gitlab.gnome.org/GNOME/glib/-/issues/2692
-  $CURL https://gitlab.gnome.org/GNOME/glib/-/commit/871e5708679b96e63ee574f5c74e0e746f4be9a4.patch | patch -p1
-fi
+# https://gitlab.gnome.org/GNOME/glib/-/issues/2713
+$CURL https://gitlab.gnome.org/GNOME/glib/-/commit/c850a06ea2a78a6822d54546989400039753329d.patch | patch -p1
 $CURL https://gist.github.com/kleisauke/284d685efa00908da99ea6afbaaf39ae/raw/af997aa5b6bdb27484c6d9f16d9255d79c86aa77/glib-without-gregex.patch | patch -p1
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
   --force-fallback-for=gvdb -Dnls=disabled -Dtests=false -Dinstalled_tests=false -Dlibmount=disabled -Dlibelf=disabled ${DARWIN:+-Dbsymbolic_functions=false}
@@ -275,17 +273,6 @@ make install/strip
 mkdir ${DEPS}/heif
 $CURL https://github.com/strukturag/libheif/releases/download/v${VERSION_HEIF}/libheif-${VERSION_HEIF}.tar.gz | tar xzC ${DEPS}/heif --strip-components=1
 cd ${DEPS}/heif
-# [PATCH] aom encoder: improve performance by ~2x using new 'all intra'
-$CURL https://github.com/strukturag/libheif/commit/de0c159a60c2c50931321f06e36a3b6640c5c807.patch | patch -p1
-# [PATCH] aom: expose decoder error messages
-$CURL https://github.com/strukturag/libheif/commit/7e1c1888023f6dd68cf33e537e7eb8e4d5e17588.patch | patch -p1
-# [PATCH] Detect and prevent negative overflow of clap box dimensions
-$CURL https://github.com/strukturag/libheif/commit/e625a702ec7d46ce042922547d76045294af71d6.patch | git apply -
-# [PATCH] Avoid lroundf
-$CURL https://github.com/strukturag/libheif/commit/499a0a31d79936042c7abeef2513bb0b56b81489.patch | patch -p1
-# [PATCH] Add API to sanitize enums relating to color profiles
-$CURL https://github.com/kleisauke/libheif/commit/0d44224914946a00d293c08bbaf4553acc985802.patch | patch -p1
-autoreconf -fiv
 CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" ./configure \
   --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-gdk-pixbuf --disable-go --disable-examples --disable-libde265 --disable-x265
@@ -351,10 +338,10 @@ ninja -C _build install
 mkdir ${DEPS}/gdkpixbuf
 $CURL https://download.gnome.org/sources/gdk-pixbuf/$(without_patch $VERSION_GDKPIXBUF)/gdk-pixbuf-${VERSION_GDKPIXBUF}.tar.xz | tar xJC ${DEPS}/gdkpixbuf --strip-components=1
 cd ${DEPS}/gdkpixbuf
-# Disable tests and thumbnailer
-sed -i'.bak' "/subdir('tests')/{N;d;}" meson.build
+# Skip thumbnailer
+sed -i'.bak' "/subdir('thumbnailer')/d" meson.build
 sed -i'.bak' "/post-install/{N;N;N;N;d;}" meson.build
-# Disable the built-in loaders for BMP, GIF, ICO, PNM, XPM, XBM, TGA, ICNS and QTIF
+# Skip the built-in loaders for BMP, GIF, ICO, PNM, XPM, XBM, TGA, ICNS and QTIF
 sed -i'.bak' "/'bmp':/{N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;d;}" gdk-pixbuf/meson.build
 sed -i'.bak' "/'pnm':/{N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;d;}" gdk-pixbuf/meson.build
 # Skip executables
@@ -364,7 +351,7 @@ sed -i'.bak' "/loaders_cache = custom/{N;N;N;N;N;N;N;N;N;c\\
   loaders_dep = declare_dependency()
 }" gdk-pixbuf/meson.build
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
-  -Dtiff=disabled -Dintrospection=disabled -Dinstalled_tests=false -Dgio_sniffing=false -Dman=false -Dbuiltin_loaders=png,jpeg
+  -Dtiff=disabled -Dintrospection=disabled -Dtests=false -Dinstalled_tests=false -Dgio_sniffing=false -Dman=false -Dbuiltin_loaders=png,jpeg
 ninja -C _build
 ninja -C _build install
 # Include libjpeg and libpng as a dependency of gdk-pixbuf, see: https://gitlab.gnome.org/GNOME/gdk-pixbuf/merge_requests/50
@@ -398,10 +385,6 @@ ninja -C _build install
 mkdir ${DEPS}/harfbuzz
 $CURL https://github.com/harfbuzz/harfbuzz/archive/${VERSION_HARFBUZZ}.tar.gz | tar xzC ${DEPS}/harfbuzz --strip-components=1
 cd ${DEPS}/harfbuzz
-# https://github.com/harfbuzz/harfbuzz/pull/3707
-$CURL https://github.com/kleisauke/harfbuzz/commit/94bfd2ff7a4b4e7949f0ac0834b2bf38a1feea12.patch | patch -p1
-$CURL https://github.com/kleisauke/harfbuzz/commit/43f5ee43753cf4df5dc7811fc8a464f97a4551c2.patch | patch -p1
-$CURL https://github.com/kleisauke/harfbuzz/commit/23aa63c955202fc7e8caac59c0c656edddc84dba.patch | patch -p1
 # Disable utils
 sed -i'.bak' "/subdir('util')/d" meson.build
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
