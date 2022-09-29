@@ -94,14 +94,14 @@ CURL="curl --silent --location --retry 3 --retry-max-time 30"
 
 # Dependency version numbers
 VERSION_ZLIB_NG=2.0.6
-VERSION_FFI=3.4.2
-VERSION_GLIB=2.73.3
+VERSION_FFI=3.4.3
+VERSION_GLIB=2.74.0
 VERSION_XML2=2.10.2
 VERSION_GSF=1.14.50
 VERSION_EXIF=0.6.24
 VERSION_LCMS2=2.13.1
 VERSION_MOZJPEG=4.1.1
-VERSION_PNG16=1.6.37
+VERSION_PNG16=1.6.38
 VERSION_SPNG=0.7.2
 VERSION_IMAGEQUANT=2.4.1
 VERSION_WEBP=1.2.4
@@ -110,15 +110,15 @@ VERSION_ORC=0.4.32
 VERSION_PROXY_LIBINTL=0.4
 VERSION_GDKPIXBUF=2.42.9
 VERSION_FREETYPE=2.12.1
-VERSION_EXPAT=2.4.8
+VERSION_EXPAT=2.4.9
 VERSION_FONTCONFIG=2.14.0
-VERSION_HARFBUZZ=5.1.0
+VERSION_HARFBUZZ=5.2.0
 VERSION_PIXMAN=0.40.0
 VERSION_CAIRO=1.17.6
 VERSION_FRIBIDI=1.0.12
-VERSION_PANGO=1.50.9
-VERSION_SVG=2.54.5
-VERSION_AOM=3.4.0
+VERSION_PANGO=1.50.10
+VERSION_SVG=2.55.1
+VERSION_AOM=3.5.0
 VERSION_HEIF=1.13.0
 VERSION_CGIF=0.3.0
 
@@ -165,14 +165,14 @@ version_latest "orc" "$VERSION_ORC" "2573"
 version_latest "proxy-libintl" "$VERSION_PROXY_LIBINTL" "frida/proxy-libintl"
 version_latest "gdkpixbuf" "$VERSION_GDKPIXBUF" "9533"
 version_latest "freetype" "$VERSION_FREETYPE" "854"
-version_latest "expat" "$VERSION_EXPAT" "770"
+#version_latest "expat" "$VERSION_EXPAT" "770" # latest version in release monitoring is out of sync
 version_latest "fontconfig" "$VERSION_FONTCONFIG" "827"
 version_latest "harfbuzz" "$VERSION_HARFBUZZ" "1299"
 version_latest "pixman" "$VERSION_PIXMAN" "3648"
 version_latest "cairo" "$VERSION_CAIRO" "247"
 version_latest "fribidi" "$VERSION_FRIBIDI" "857"
 version_latest "pango" "$VERSION_PANGO" "11783"
-version_latest "svg" "$VERSION_SVG" "5420"
+version_latest "svg" "$VERSION_SVG" "5420" "unstable"
 version_latest "aom" "$VERSION_AOM" "17628"
 version_latest "heif" "$VERSION_HEIF" "strukturag/libheif"
 version_latest "cgif" "$VERSION_CGIF" "dloebl/cgif"
@@ -219,8 +219,6 @@ cd ${DEPS}/glib
 if [ "$DARWIN" = true ]; then
   $CURL https://gist.github.com/kleisauke/f6dcbf02a9aa43fd582272c3d815e7a8/raw/75b1e06250bdb0df067be4a5db54df960f35c46d/glib-proxy-libintl.patch | patch -p1
 fi
-# https://gitlab.gnome.org/GNOME/glib/-/issues/2713
-$CURL https://gitlab.gnome.org/GNOME/glib/-/commit/c850a06ea2a78a6822d54546989400039753329d.patch | patch -p1
 $CURL https://gist.github.com/kleisauke/284d685efa00908da99ea6afbaaf39ae/raw/af997aa5b6bdb27484c6d9f16d9255d79c86aa77/glib-without-gregex.patch | patch -p1
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
   --force-fallback-for=gvdb -Dnls=disabled -Dtests=false -Dinstalled_tests=false -Dlibmount=disabled -Dlibelf=disabled ${DARWIN:+-Dbsymbolic_functions=false}
