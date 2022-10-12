@@ -51,7 +51,7 @@ jobs:
             | xargs gh api > tmp.zip || exit 0
           unzip tmp.zip
           rm tmp.zip
-          echo "::set-output name=docker_file_name::docker-${{ matrix.platform }}.tar.gz"
+          echo "docker_file_name=docker-${{ matrix.platform }}.tar.gz" >> $GITHUB_OUTPUT
       - name: Load relevant image locally
         if: steps.fetch-docker.outputs.docker_file_name != ''
         run: docker load -i ${{ steps.fetch-docker.outputs.docker_file_name }} || echo "Could not load Docker image"
