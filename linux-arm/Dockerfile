@@ -54,6 +54,8 @@ COPY armv7-linux-gnueabihf.config /x-tools/build/.config
 
 RUN \
   ct-ng olddefconfig && \
+  # https://github.com/crosstool-ng/crosstool-ng/issues/1832 \
+  sed -i 's/CT_ZLIB_VERSION="1.2.12"/CT_ZLIB_VERSION="1.2.13"/g' .config && \
   CT_ALLOW_BUILD_AS_ROOT_SURE=y ct-ng build || (cat build.log && exit 1) && \
   cd .. && \
   rm -rf build
