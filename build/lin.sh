@@ -94,26 +94,26 @@ CURL="curl --silent --location --retry 3 --retry-max-time 30"
 
 # Dependency version numbers
 VERSION_ZLIB_NG=2.0.6
-VERSION_FFI=3.4.3
-VERSION_GLIB=2.74.0
-VERSION_XML2=2.10.2
+VERSION_FFI=3.4.4
+VERSION_GLIB=2.74.1
+VERSION_XML2=2.10.3
 VERSION_GSF=1.14.50
 VERSION_EXIF=0.6.24
-VERSION_LCMS2=2.13.1
+VERSION_LCMS2=2.14
 VERSION_MOZJPEG=4.1.1
 VERSION_PNG16=1.6.38
 VERSION_SPNG=0.7.2
 VERSION_IMAGEQUANT=2.4.1
 VERSION_WEBP=1.2.4
 VERSION_TIFF=4.4.0
-VERSION_ORC=0.4.32
+VERSION_ORC=0.4.33
 VERSION_PROXY_LIBINTL=0.4
-VERSION_GDKPIXBUF=2.42.9
+VERSION_GDKPIXBUF=2.42.10
 VERSION_FREETYPE=2.12.1
-VERSION_EXPAT=2.4.9
-VERSION_FONTCONFIG=2.14.0
-VERSION_HARFBUZZ=5.3.0
-VERSION_PIXMAN=0.40.0
+VERSION_EXPAT=2.5.0
+VERSION_FONTCONFIG=2.14.1
+VERSION_HARFBUZZ=5.3.1
+VERSION_PIXMAN=0.42.2
 VERSION_CAIRO=1.17.6
 VERSION_FRIBIDI=1.0.12
 VERSION_PANGO=1.50.11
@@ -235,11 +235,10 @@ make install-strip
 mkdir ${DEPS}/gsf
 $CURL https://download.gnome.org/sources/libgsf/$(without_patch $VERSION_GSF)/libgsf-${VERSION_GSF}.tar.xz | tar xJC ${DEPS}/gsf --strip-components=1
 cd ${DEPS}/gsf
-# Skip unused subdirs
-sed -i'.bak' "s/ doc tools tests thumbnailer python//" Makefile.in
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --without-bz2 --without-gdk-pixbuf --disable-nls --without-libiconv-prefix --without-libintl-prefix
-make install-strip
+# Skip unused subdirs
+make install-strip SUBDIRS="gsf"
 
 mkdir ${DEPS}/exif
 $CURL https://github.com/libexif/libexif/releases/download/v${VERSION_EXIF}/libexif-${VERSION_EXIF}.tar.bz2 | tar xjC ${DEPS}/exif --strip-components=1
@@ -393,10 +392,9 @@ ninja -C _build install
 mkdir ${DEPS}/pixman
 $CURL https://cairographics.org/releases/pixman-${VERSION_PIXMAN}.tar.gz | tar xzC ${DEPS}/pixman --strip-components=1
 cd ${DEPS}/pixman
-# Disable tests and demos
-sed -i'.bak' "/subdir('test')/{N;d;}" meson.build
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
-  -Dlibpng=disabled -Diwmmxt=disabled -Dgtk=disabled -Dopenmp=disabled
+  -Dlibpng=disabled -Diwmmxt=disabled -Dgtk=disabled -Dopenmp=disabled -Dtests=disabled \
+  ${DARWIN_ARM:+-Da64-neon=disabled}
 ninja -C _build
 ninja -C _build install
 
@@ -412,10 +410,8 @@ ninja -C _build install
 mkdir ${DEPS}/fribidi
 $CURL https://github.com/fribidi/fribidi/releases/download/v${VERSION_FRIBIDI}/fribidi-${VERSION_FRIBIDI}.tar.xz | tar xJC ${DEPS}/fribidi --strip-components=1
 cd ${DEPS}/fribidi
-# Disable tests
-sed -i'.bak' "/subdir('test')/d" meson.build
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
-  -Ddocs=false
+  -Ddocs=false -Dbin=false -Dtests=false
 ninja -C _build
 ninja -C _build install
 
@@ -432,21 +428,17 @@ ninja -C _build install
 mkdir ${DEPS}/svg
 $CURL https://download.gnome.org/sources/librsvg/$(without_patch $VERSION_SVG)/librsvg-${VERSION_SVG}.tar.xz | tar xJC ${DEPS}/svg --strip-components=1
 cd ${DEPS}/svg
+# Add missing pkg-config deps
 sed -i'.bak' "s/^\(Requires:.*\)/\1 cairo-gobject pangocairo/" librsvg.pc.in
 # LTO optimization does not work for staticlib+rlib compilation
 sed -i'.bak' "s/, \"rlib\"//" Cargo.toml
-# Skip executables
-sed -i'.bak' "/SCRIPTS = /d" Makefile.in
-# Use target/CARGO_BUILD_TARGET/release instead of target/release when set
-if [ -n "$CARGO_BUILD_TARGET" ]; then
-  sed -i'.bak' "s/@RUST_TARGET_SUBDIR@/$CARGO_BUILD_TARGET\/@RUST_TARGET_SUBDIR@/" Makefile.in
-fi
 # Remove the --static flag from the PKG_CONFIG env since Rust does not
 # support that. Build with PKG_CONFIG_ALL_STATIC=1 instead.
 PKG_CONFIG=${PKG_CONFIG/ --static/} ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-introspection --disable-tools --disable-pixbuf-loader --disable-nls --without-libiconv-prefix --without-libintl-prefix \
   ${DARWIN:+--disable-Bsymbolic}
-PKG_CONFIG_ALL_STATIC=1 make install-strip
+# Skip build of rsvg-convert
+PKG_CONFIG_ALL_STATIC=1 make install-strip bin_SCRIPTS=
 
 mkdir ${DEPS}/cgif
 $CURL https://github.com/dloebl/cgif/archive/V${VERSION_CGIF}.tar.gz | tar xzC ${DEPS}/cgif --strip-components=1
