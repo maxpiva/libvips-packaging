@@ -58,8 +58,8 @@ jobs:
       - name: Install dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
-          brew update
-          brew install advancecomp automake meson nasm ninja pkg-config
+          pip3 install meson ninja
+          brew install advancecomp automake nasm pkg-config
       - name: Build ${{ matrix.platform }}
         id: build-release
         run: ./build.sh $(cat LIBVIPS_VERSION) ${{ matrix.platform }}

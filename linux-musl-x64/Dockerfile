@@ -43,7 +43,8 @@ RUN \
 ENV \
   PKG_CONFIG="pkg-config --static" \
   PLATFORM="linux-musl-x64" \
-  FLAGS="-march=nehalem"
+  FLAGS="-march=nehalem" \
+  MESON="--cross-file=/root/meson.ini"
 
 # Musl defaults to static libs but we need them to be dynamic for host toolchain.
 # The toolchain will produce static libs by default.
@@ -51,3 +52,4 @@ ENV \
   RUSTFLAGS="-Ctarget-feature=-crt-static"
 
 COPY Toolchain.cmake /root/
+COPY meson.ini /root/
