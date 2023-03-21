@@ -86,6 +86,10 @@ export CARGO_PROFILE_RELEASE_LTO=true
 export CARGO_PROFILE_RELEASE_OPT_LEVEL=z
 export CARGO_PROFILE_RELEASE_PANIC=abort
 
+# Ensure Cargo build path prefixes are removed from the resulting binaries
+# https://reproducible-builds.org/docs/build-path/
+export RUSTFLAGS+=" --remap-path-prefix=$CARGO_HOME/registry/="
+
 # We don't want to use any native libraries, so unset PKG_CONFIG_PATH
 unset PKG_CONFIG_PATH
 
@@ -93,33 +97,32 @@ unset PKG_CONFIG_PATH
 CURL="curl --silent --location --retry 3 --retry-max-time 30"
 
 # Dependency version numbers
-VERSION_ZLIB_NG=2.0.6
+VERSION_ZLIB_NG=2.0.7
 VERSION_FFI=3.4.4
-VERSION_GLIB=2.75.1
+VERSION_GLIB=2.76.0
 VERSION_XML2=2.10.3
-VERSION_GSF=1.14.50
 VERSION_EXIF=0.6.24
-VERSION_LCMS2=2.14
+VERSION_LCMS2=2.15
 VERSION_MOZJPEG=4.1.1
 VERSION_PNG16=1.6.39
 VERSION_SPNG=0.7.3
 VERSION_IMAGEQUANT=2.4.1
-VERSION_WEBP=1.2.4
+VERSION_WEBP=1.3.0
 VERSION_TIFF=4.5.0
 VERSION_ORC=0.4.33
 VERSION_PROXY_LIBINTL=0.4
 VERSION_GDKPIXBUF=2.42.10
-VERSION_FREETYPE=2.12.1
+VERSION_FREETYPE=2.13.0
 VERSION_EXPAT=2.5.0
-VERSION_FONTCONFIG=2.14.1
-VERSION_HARFBUZZ=6.0.0
+VERSION_FONTCONFIG=2.14.2
+VERSION_HARFBUZZ=7.1.0
 VERSION_PIXMAN=0.42.2
-VERSION_CAIRO=1.17.6
+VERSION_CAIRO=1.17.8
 VERSION_FRIBIDI=1.0.12
-VERSION_PANGO=1.50.12
-VERSION_SVG=2.55.90
-VERSION_AOM=3.5.0
-VERSION_HEIF=1.14.0
+VERSION_PANGO=1.50.14
+VERSION_RSVG=2.56.0
+VERSION_AOM=3.6.0
+VERSION_HEIF=1.15.1
 VERSION_CGIF=0.3.0
 
 # Remove patch version component
@@ -153,11 +156,10 @@ version_latest() {
     echo "$1 version $2 has been superseded by $VERSION_LATEST"
   fi
 }
-version_latest "zlib-ng" "$VERSION_ZLIB_NG" "115592"
+#version_latest "zlib-ng" "$VERSION_ZLIB_NG" "115592" # latest not yet in release monitoring
 version_latest "ffi" "$VERSION_FFI" "1611"
 version_latest "glib" "$VERSION_GLIB" "10024" "unstable"
 version_latest "xml2" "$VERSION_XML2" "1783"
-version_latest "gsf" "$VERSION_GSF" "1980"
 version_latest "exif" "$VERSION_EXIF" "1607"
 version_latest "lcms2" "$VERSION_LCMS2" "9815"
 version_latest "mozjpeg" "$VERSION_MOZJPEG" "mozilla/mozjpeg"
@@ -176,7 +178,7 @@ version_latest "pixman" "$VERSION_PIXMAN" "3648"
 version_latest "cairo" "$VERSION_CAIRO" "247"
 version_latest "fribidi" "$VERSION_FRIBIDI" "857"
 version_latest "pango" "$VERSION_PANGO" "11783"
-version_latest "svg" "$VERSION_SVG" "5420" "unstable"
+version_latest "rsvg" "$VERSION_RSVG" "5420" "unstable"
 version_latest "aom" "$VERSION_AOM" "17628"
 version_latest "heif" "$VERSION_HEIF" "strukturag/libheif"
 version_latest "cgif" "$VERSION_CGIF" "dloebl/cgif"
@@ -221,13 +223,9 @@ mkdir ${DEPS}/glib
 $CURL https://download.gnome.org/sources/glib/$(without_patch $VERSION_GLIB)/glib-${VERSION_GLIB}.tar.xz | tar xJC ${DEPS}/glib --strip-components=1
 cd ${DEPS}/glib
 if [ "$DARWIN" = true ]; then
-  $CURL https://gist.github.com/kleisauke/f6dcbf02a9aa43fd582272c3d815e7a8/raw/75b1e06250bdb0df067be4a5db54df960f35c46d/glib-proxy-libintl.patch | patch -p1
+  $CURL https://gist.github.com/kleisauke/f6dcbf02a9aa43fd582272c3d815e7a8/raw/244533fc6935db39320d7d3773760f4d0e9d365b/glib-proxy-libintl.patch | patch -p1
 fi
-$CURL https://gist.github.com/kleisauke/284d685efa00908da99ea6afbaaf39ae/raw/ce7f85f337357555c3112b36d4b2753ae996f5ff/glib-without-gregex.patch | patch -p1
-if [ "$LINUX" = true ]; then
-  # use malloc rather than slice allocator https://gitlab.gnome.org/GNOME/glib/-/issues/1079
-  $CURL https://raw.githubusercontent.com/alpinelinux/aports/ba57357f7a7094d1ebf4542912661383bafcf348/main/glib/always-malloc.patch | patch -p1
-fi
+$CURL https://gist.github.com/kleisauke/284d685efa00908da99ea6afbaaf39ae/raw/21e4100bce7145e9137c4b4a6c612e7a0864e476/glib-without-gregex.patch | patch -p1
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
   --force-fallback-for=gvdb -Dnls=disabled -Dtests=false -Dinstalled_tests=false -Dlibmount=disabled -Dlibelf=disabled ${DARWIN:+-Dbsymbolic_functions=false}
 # bin-devel is needed for glib-compile-resources, as required by gdk-pixbuf
@@ -240,14 +238,6 @@ cd ${DEPS}/xml2
   --with-minimum --with-reader --with-writer --with-valid --with-http --with-tree --with-zlib --without-python --without-lzma
 make install-strip
 
-mkdir ${DEPS}/gsf
-$CURL https://download.gnome.org/sources/libgsf/$(without_patch $VERSION_GSF)/libgsf-${VERSION_GSF}.tar.xz | tar xJC ${DEPS}/gsf --strip-components=1
-cd ${DEPS}/gsf
-./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
-  --without-bz2 --without-gdk-pixbuf --disable-nls --without-libiconv-prefix --without-libintl-prefix
-# Skip unused subdirs
-make install-strip SUBDIRS="gsf"
-
 mkdir ${DEPS}/exif
 $CURL https://github.com/libexif/libexif/releases/download/v${VERSION_EXIF}/libexif-${VERSION_EXIF}.tar.bz2 | tar xjC ${DEPS}/exif --strip-components=1
 cd ${DEPS}/exif
@@ -259,8 +249,8 @@ make install-strip
 mkdir ${DEPS}/lcms2
 $CURL https://github.com/mm2/Little-CMS/releases/download/lcms${VERSION_LCMS2}/lcms2-${VERSION_LCMS2}.tar.gz | tar xzC ${DEPS}/lcms2 --strip-components=1
 cd ${DEPS}/lcms2
-CFLAGS="${CFLAGS} -O3" ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking
-make install-strip
+CFLAGS="${CFLAGS} -O3" meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON}
+meson install -C _build --tag devel
 
 mkdir ${DEPS}/aom
 $CURL https://storage.googleapis.com/aom-releases/libaom-${VERSION_AOM}.tar.gz | tar xzC ${DEPS}/aom --strip-components=1
@@ -304,7 +294,7 @@ make install-strip
 mkdir ${DEPS}/spng
 $CURL https://github.com/randy408/libspng/archive/v${VERSION_SPNG}.tar.gz | tar xzC ${DEPS}/spng --strip-components=1
 cd ${DEPS}/spng
-CFLAGS="${CFLAGS} -O3" meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
+CFLAGS="${CFLAGS} -O3 -DSPNG_SSE=4" meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
   -Dstatic_zlib=true
 meson install -C _build --tag devel
 
@@ -333,10 +323,9 @@ make install-strip
 mkdir ${DEPS}/orc
 $CURL https://gstreamer.freedesktop.org/data/src/orc/orc-${VERSION_ORC}.tar.xz | tar xJC ${DEPS}/orc --strip-components=1
 cd ${DEPS}/orc
-# Prevent detection of pthread_jit for macOS 10 deployment target
-if [ "$PLATFORM" == "osx-x64" ]; then
-  sed -i'.bak' "s/cc.has_function('pthread_jit_write_protect_np')/false/" meson.build
-fi
+# Fix detection of macOS pthread_jit
+$CURL https://gitlab.freedesktop.org/gstreamer/orc/-/commit/4d0144a9cc4efa195ae3e7f6b99b2daa9ad47b54.patch | patch -p1
+$CURL https://gitlab.freedesktop.org/gstreamer/orc/-/commit/6b838f7e629cf721a570631e47ea482f25e75c70.patch | patch -p1
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
   -Dorc-test=disabled -Dbenchmarks=disabled -Dexamples=disabled -Dgtk_doc=disabled -Dtests=disabled -Dtools=disabled
 meson install -C _build --tag devel
@@ -363,7 +352,7 @@ meson install -C _build --tag devel
 sed -i'.bak' "s/^\(Requires:.*\)/\1 libjpeg, libpng16/" ${TARGET}/lib/pkgconfig/gdk-pixbuf-2.0.pc
 
 mkdir ${DEPS}/freetype
-$CURL https://download.savannah.gnu.org/releases/freetype/freetype-${VERSION_FREETYPE}.tar.xz | tar xJC ${DEPS}/freetype --strip-components=1
+$CURL https://gitlab.freedesktop.org/freetype/freetype/-/archive/VER-${VERSION_FREETYPE//./-}/freetype-VER-${VERSION_FREETYPE//./-}.tar.bz2 | tar xjC ${DEPS}/freetype --strip-components=1
 cd ${DEPS}/freetype
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
   -Dzlib=enabled -Dpng=disabled -Dharfbuzz=disabled -Dbrotli=disabled -Dbzip2=disabled
@@ -426,11 +415,11 @@ meson setup _build --default-library=static --buildtype=release --strip --prefix
   -Dgtk_doc=false -Dintrospection=disabled -Dfontconfig=enabled
 meson install -C _build --tag devel
 
-mkdir ${DEPS}/svg
-$CURL https://download.gnome.org/sources/librsvg/$(without_patch $VERSION_SVG)/librsvg-${VERSION_SVG}.tar.xz | tar xJC ${DEPS}/svg --strip-components=1
-cd ${DEPS}/svg
+mkdir ${DEPS}/rsvg
+$CURL https://download.gnome.org/sources/librsvg/$(without_patch $VERSION_RSVG)/librsvg-${VERSION_RSVG}.tar.xz | tar xJC ${DEPS}/rsvg --strip-components=1
+cd ${DEPS}/rsvg
 # Add missing pkg-config deps
-sed -i'.bak' "s/^\(Requires:.*\)/\1 cairo-gobject pangocairo/" librsvg.pc.in
+sed -i'.bak' "s/^\(Requires:.*\)/\1 cairo-gobject pangocairo libxml-2.0/" librsvg.pc.in
 # LTO optimization does not work for staticlib+rlib compilation
 sed -i'.bak' "s/, \"rlib\"//" Cargo.toml
 # Remove the --static flag from the PKG_CONFIG env since Rust does not
@@ -467,7 +456,8 @@ sed -i'.bak' "/subdir('man')/{N;N;N;N;d;}" meson.build
 CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" meson setup _build --default-library=shared --buildtype=release --strip --prefix=${TARGET} ${MESON} \
   -Ddeprecated=false -Dintrospection=false -Dmodules=disabled -Dcfitsio=disabled -Dfftw=disabled -Djpeg-xl=disabled \
   -Dmagick=disabled -Dmatio=disabled -Dnifti=disabled -Dopenexr=disabled -Dopenjpeg=disabled -Dopenslide=disabled \
-  -Dpdfium=disabled -Dpoppler=disabled -Dquantizr=disabled -Dppm=false -Danalyze=false -Dradiance=false \
+  -Dpdfium=disabled -Dpoppler=disabled -Dquantizr=disabled -Dgsf=disabled \
+  -Dppm=false -Danalyze=false -Dradiance=false \
   ${LINUX:+-Dcpp_link_args="$LDFLAGS -Wl,-Bsymbolic-functions -Wl,--version-script=$DEPS/vips/vips.map $EXCLUDE_LIBS"}
 meson install -C _build --tag runtime,devel
 
@@ -548,7 +538,6 @@ printf "{\n\
   \"fribidi\": \"${VERSION_FRIBIDI}\",\n\
   \"gdkpixbuf\": \"${VERSION_GDKPIXBUF}\",\n\
   \"glib\": \"${VERSION_GLIB}\",\n\
-  \"gsf\": \"${VERSION_GSF}\",\n\
   \"harfbuzz\": \"${VERSION_HARFBUZZ}\",\n\
   \"heif\": \"${VERSION_HEIF}\",\n\
   \"imagequant\": \"${VERSION_IMAGEQUANT}\",\n\
@@ -559,7 +548,7 @@ printf "{\n\
   \"pixman\": \"${VERSION_PIXMAN}\",\n\
   \"png\": \"${VERSION_PNG16}\",\n\
   \"proxy-libintl\": \"${VERSION_PROXY_LIBINTL}\",\n\
-  \"svg\": \"${VERSION_SVG}\",\n\
+  \"rsvg\": \"${VERSION_RSVG}\",\n\
   \"spng\": \"${VERSION_SPNG}\",\n\
   \"tiff\": \"${VERSION_TIFF}\",\n\
   \"vips\": \"${VERSION_VIPS}\",\n\

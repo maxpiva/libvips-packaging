@@ -18,7 +18,6 @@ used under the terms of the following licences:
 | lcms          | MIT Licence                                                                                               |
 | libexif       | LGPLv3                                                                                                    |
 | libffi        | MIT Licence                                                                                               |
-| libgsf        | LGPLv3                                                                                                    |
 | libheif       | LGPLv3                                                                                                    |
 | libimagequant | [BSD 2-Clause](https://github.com/lovell/libimagequant/blob/main/COPYRIGHT)                               |
 | libnsgif      | MIT Licence                                                                                               |
