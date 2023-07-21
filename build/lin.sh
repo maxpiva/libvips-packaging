@@ -97,33 +97,34 @@ unset PKG_CONFIG_PATH
 CURL="curl --silent --location --retry 3 --retry-max-time 30"
 
 # Dependency version numbers
-VERSION_ZLIB_NG=2.0.7
+VERSION_ZLIB_NG=2.1.3
 VERSION_FFI=3.4.4
-VERSION_GLIB=2.76.0
-VERSION_XML2=2.10.3
+VERSION_GLIB=2.77.0
+VERSION_XML2=2.11.4
 VERSION_EXIF=0.6.24
 VERSION_LCMS2=2.15
-VERSION_MOZJPEG=4.1.1
-VERSION_PNG16=1.6.39
-VERSION_SPNG=0.7.3
+VERSION_MOZJPEG=4.1.3
+VERSION_PNG16=1.6.40
+VERSION_SPNG=0.7.4
 VERSION_IMAGEQUANT=2.4.1
-VERSION_WEBP=1.3.0
-VERSION_TIFF=4.5.0
-VERSION_ORC=0.4.33
+VERSION_WEBP=1.3.1
+VERSION_TIFF=4.5.1
+VERSION_ORC=0.4.34
 VERSION_PROXY_LIBINTL=0.4
 VERSION_GDKPIXBUF=2.42.10
-VERSION_FREETYPE=2.13.0
+VERSION_FREETYPE=2.13.1
 VERSION_EXPAT=2.5.0
+VERSION_ARCHIVE=3.7.0
 VERSION_FONTCONFIG=2.14.2
-VERSION_HARFBUZZ=7.1.0
+VERSION_HARFBUZZ=8.0.1
 VERSION_PIXMAN=0.42.2
 VERSION_CAIRO=1.17.8
-VERSION_FRIBIDI=1.0.12
+VERSION_FRIBIDI=1.0.13
 VERSION_PANGO=1.50.14
-VERSION_RSVG=2.56.0
-VERSION_AOM=3.6.0
-VERSION_HEIF=1.15.1
-VERSION_CGIF=0.3.0
+VERSION_RSVG=2.56.90
+VERSION_AOM=3.6.1
+VERSION_HEIF=1.16.2
+VERSION_CGIF=0.3.2
 
 # Remove patch version component
 without_patch() {
@@ -156,7 +157,7 @@ version_latest() {
     echo "$1 version $2 has been superseded by $VERSION_LATEST"
   fi
 }
-#version_latest "zlib-ng" "$VERSION_ZLIB_NG" "115592" # latest not yet in release monitoring
+version_latest "zlib-ng" "$VERSION_ZLIB_NG" "115592"
 version_latest "ffi" "$VERSION_FFI" "1611"
 version_latest "glib" "$VERSION_GLIB" "10024" "unstable"
 version_latest "xml2" "$VERSION_XML2" "1783"
@@ -172,6 +173,7 @@ version_latest "proxy-libintl" "$VERSION_PROXY_LIBINTL" "frida/proxy-libintl"
 version_latest "gdkpixbuf" "$VERSION_GDKPIXBUF" "9533"
 version_latest "freetype" "$VERSION_FREETYPE" "854"
 version_latest "expat" "$VERSION_EXPAT" "770"
+version_latest "archive" "$VERSION_ARCHIVE" "1558"
 version_latest "fontconfig" "$VERSION_FONTCONFIG" "827"
 version_latest "harfbuzz" "$VERSION_HARFBUZZ" "1299"
 version_latest "pixman" "$VERSION_PIXMAN" "3648"
@@ -222,12 +224,10 @@ make install-strip
 mkdir ${DEPS}/glib
 $CURL https://download.gnome.org/sources/glib/$(without_patch $VERSION_GLIB)/glib-${VERSION_GLIB}.tar.xz | tar xJC ${DEPS}/glib --strip-components=1
 cd ${DEPS}/glib
-if [ "$DARWIN" = true ]; then
-  $CURL https://gist.github.com/kleisauke/f6dcbf02a9aa43fd582272c3d815e7a8/raw/244533fc6935db39320d7d3773760f4d0e9d365b/glib-proxy-libintl.patch | patch -p1
-fi
-$CURL https://gist.github.com/kleisauke/284d685efa00908da99ea6afbaaf39ae/raw/21e4100bce7145e9137c4b4a6c612e7a0864e476/glib-without-gregex.patch | patch -p1
+$CURL https://gist.github.com/kleisauke/284d685efa00908da99ea6afbaaf39ae/raw/e826724a837825226057347b75567059dabc85d4/glib-without-gregex.patch | patch -p1
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
-  --force-fallback-for=gvdb -Dnls=disabled -Dtests=false -Dinstalled_tests=false -Dlibmount=disabled -Dlibelf=disabled ${DARWIN:+-Dbsymbolic_functions=false}
+  --force-fallback-for=gvdb -Dnls=disabled -Dtests=false -Dinstalled_tests=false -Dlibmount=disabled -Dlibelf=disabled \
+  -Dglib_assert=false -Dglib_checks=false ${DARWIN:+-Dbsymbolic_functions=false}
 # bin-devel is needed for glib-compile-resources, as required by gdk-pixbuf
 meson install -C _build --tag bin-devel,devel
 
@@ -280,6 +280,8 @@ make install/strip
 mkdir ${DEPS}/jpeg
 $CURL https://github.com/mozilla/mozjpeg/archive/v${VERSION_MOZJPEG}.tar.gz | tar xzC ${DEPS}/jpeg --strip-components=1
 cd ${DEPS}/jpeg
+# https://github.com/mozilla/mozjpeg/pull/432
+$CURL https://github.com/libjpeg-turbo/libjpeg-turbo/commit/d743a2c12e889f7605a56f5144ae2e3899c9dd4f.patch | patch -p1
 cmake -G"Unix Makefiles" \
   -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_INSTALL_LIBDIR:PATH=lib -DCMAKE_BUILD_TYPE=MinSizeRel \
   -DENABLE_STATIC=TRUE -DENABLE_SHARED=FALSE -DWITH_JPEG8=1 -DWITH_TURBOJPEG=FALSE -DPNG_SUPPORTED=FALSE
@@ -323,9 +325,6 @@ make install-strip
 mkdir ${DEPS}/orc
 $CURL https://gstreamer.freedesktop.org/data/src/orc/orc-${VERSION_ORC}.tar.xz | tar xJC ${DEPS}/orc --strip-components=1
 cd ${DEPS}/orc
-# Fix detection of macOS pthread_jit
-$CURL https://gitlab.freedesktop.org/gstreamer/orc/-/commit/4d0144a9cc4efa195ae3e7f6b99b2daa9ad47b54.patch | patch -p1
-$CURL https://gitlab.freedesktop.org/gstreamer/orc/-/commit/6b838f7e629cf721a570631e47ea482f25e75c70.patch | patch -p1
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
   -Dorc-test=disabled -Dbenchmarks=disabled -Dexamples=disabled -Dgtk_doc=disabled -Dtests=disabled -Dtools=disabled
 meson install -C _build --tag devel
@@ -364,6 +363,17 @@ cd ${DEPS}/expat
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared \
   --disable-dependency-tracking --without-xmlwf --without-docbook --without-getrandom --without-sys-getrandom \
   --without-libbsd --without-examples --without-tests
+make install-strip
+
+mkdir ${DEPS}/archive
+$CURL https://github.com/libarchive/libarchive/releases/download/v${VERSION_ARCHIVE}/libarchive-${VERSION_ARCHIVE}.tar.xz | tar xJC ${DEPS}/archive --strip-components=1
+cd ${DEPS}/archive
+# Replace svfs.f_namelen with svfs.f_namemax (remove when version > 3.7.0)
+$CURL https://github.com/libarchive/libarchive/commit/bd074c2531e867078788fe8539376c31119e4e55.patch | patch -p1
+./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
+  --disable-bsdtar --disable-bsdcat --disable-bsdcpio --disable-bsdunzip --disable-posix-regex-lib --disable-xattr --disable-acl \
+  --without-bz2lib --without-libb2 --without-iconv --without-lz4 --without-zstd --without-lzma \
+  --without-lzo2 --without-cng --without-openssl --without-xml2 --without-expat
 make install-strip
 
 mkdir ${DEPS}/fontconfig
@@ -421,12 +431,15 @@ cd ${DEPS}/rsvg
 # Add missing pkg-config deps
 sed -i'.bak' "s/^\(Requires:.*\)/\1 cairo-gobject pangocairo libxml-2.0/" librsvg.pc.in
 # LTO optimization does not work for staticlib+rlib compilation
-sed -i'.bak' "s/, \"rlib\"//" Cargo.toml
+sed -i'.bak' "/crate-type = /s/, \"rlib\"//" librsvg-c/Cargo.toml
+# We build Cairo with `-Dzlib=disabled`, which implicitly disables the PDF/PostScript surface backends
+sed -i'.bak' "/cairo-rs = /s/ \"pdf\", \"ps\",//" {librsvg-c,rsvg}/Cargo.toml
+# https://gitlab.gnome.org/GNOME/librsvg/-/issues/996
+$CURL https://raw.githubusercontent.com/libvips/build-win64-mxe/master/build/patches/librsvg-2-issue-996.patch | patch -p1
 # Remove the --static flag from the PKG_CONFIG env since Rust does not
 # support that. Build with PKG_CONFIG_ALL_STATIC=1 instead.
 PKG_CONFIG=${PKG_CONFIG/ --static/} ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
-  --disable-introspection --disable-tools --disable-pixbuf-loader --disable-nls --without-libiconv-prefix --without-libintl-prefix \
-  ${DARWIN:+--disable-Bsymbolic}
+  --disable-introspection --disable-pixbuf-loader ${DARWIN:+--disable-Bsymbolic}
 # Skip build of rsvg-convert
 PKG_CONFIG_ALL_STATIC=1 make install-strip bin_SCRIPTS=
 
@@ -440,6 +453,8 @@ meson install -C _build --tag devel
 mkdir ${DEPS}/vips
 $CURL https://github.com/libvips/libvips/releases/download/v${VERSION_VIPS}/vips-$(without_prerelease $VERSION_VIPS).tar.xz | tar xJC ${DEPS}/vips --strip-components=1
 cd ${DEPS}/vips
+# Backport libarchive-based dzsave
+$CURL https://raw.githubusercontent.com/libvips/build-win64-mxe/master/build/patches/vips-8-pr-3476.patch | patch -p1
 if [ "$LINUX" = true ]; then
   # Ensure symbols from external libs (except for libglib-2.0.a and libgobject-2.0.a) are not exposed
   EXCLUDE_LIBS=$(find ${TARGET}/lib -maxdepth 1 -name '*.a' ! -name 'libglib-2.0.a' ! -name 'libgobject-2.0.a' -printf "-Wl,--exclude-libs=%f ")
@@ -456,7 +471,7 @@ sed -i'.bak' "/subdir('man')/{N;N;N;N;d;}" meson.build
 CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" meson setup _build --default-library=shared --buildtype=release --strip --prefix=${TARGET} ${MESON} \
   -Ddeprecated=false -Dintrospection=false -Dmodules=disabled -Dcfitsio=disabled -Dfftw=disabled -Djpeg-xl=disabled \
   -Dmagick=disabled -Dmatio=disabled -Dnifti=disabled -Dopenexr=disabled -Dopenjpeg=disabled -Dopenslide=disabled \
-  -Dpdfium=disabled -Dpoppler=disabled -Dquantizr=disabled -Dgsf=disabled \
+  -Dpdfium=disabled -Dpoppler=disabled -Dquantizr=disabled \
   -Dppm=false -Danalyze=false -Dradiance=false \
   ${LINUX:+-Dcpp_link_args="$LDFLAGS -Wl,-Bsymbolic-functions -Wl,--version-script=$DEPS/vips/vips.map $EXCLUDE_LIBS"}
 meson install -C _build --tag runtime,devel
@@ -528,6 +543,7 @@ copydeps ${VIPS_CPP_DEP} ${TARGET}/lib-filtered
 cd ${TARGET}
 printf "{\n\
   \"aom\": \"${VERSION_AOM}\",\n\
+  \"archive\": \"${VERSION_ARCHIVE}\",\n\
   \"cairo\": \"${VERSION_CAIRO}\",\n\
   \"cgif\": \"${VERSION_CGIF}\",\n\
   \"exif\": \"${VERSION_EXIF}\",\n\
