@@ -96,7 +96,7 @@ done
 for flavour in linux-x64 linux-arm linux-arm64 linux-musl-x64 linux-musl-arm64; do
   if [ $PLATFORM = "all" ] || [ $PLATFORM = $flavour ]; then
     echo "Building $flavour..."
-    docker build --cache-from vips-dev-$flavour -t vips-dev-$flavour $flavour
+    docker build --cache-from vips-dev-$flavour --build-arg BUILDKIT_INLINE_CACHE=1 -t vips-dev-$flavour $flavour
     docker run --rm -e "VERSION_VIPS=$VERSION_VIPS" -e VERSION_LATEST_REQUIRED -v $PWD:/packaging vips-dev-$flavour sh -c "/packaging/build/lin.sh"
   fi
 done
