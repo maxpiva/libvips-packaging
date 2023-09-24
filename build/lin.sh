@@ -60,6 +60,8 @@ if [ "$PLATFORM" == "linux-arm" ]; then
 fi
 
 if [ "$DARWIN" = true ]; then
+  # Let macOS linker remove unused code
+  export LDFLAGS+=" -Wl,-dead_strip"
   # Local rust installation
   export CARGO_HOME="${DEPS}/cargo"
   export RUSTUP_HOME="${DEPS}/rustup"
@@ -116,9 +118,9 @@ VERSION_FREETYPE=2.13.2
 VERSION_EXPAT=2.5.0
 VERSION_ARCHIVE=3.7.2
 VERSION_FONTCONFIG=2.14.2
-VERSION_HARFBUZZ=8.2.0
+VERSION_HARFBUZZ=8.2.1
 VERSION_PIXMAN=0.42.2
-VERSION_CAIRO=1.17.8
+VERSION_CAIRO=1.18.0
 VERSION_FRIBIDI=1.0.13
 VERSION_PANGO=1.51.0
 VERSION_RSVG=2.57.0
@@ -403,10 +405,10 @@ meson setup _build --default-library=static --buildtype=release --strip --prefix
 meson install -C _build --tag devel
 
 mkdir ${DEPS}/cairo
-$CURL https://gitlab.freedesktop.org/cairo/cairo/-/archive/${VERSION_CAIRO}/cairo-${VERSION_CAIRO}.tar.bz2 | tar xjC ${DEPS}/cairo --strip-components=1
+$CURL https://cairographics.org/releases/cairo-${VERSION_CAIRO}.tar.xz | tar xJC ${DEPS}/cairo --strip-components=1
 cd ${DEPS}/cairo
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
-  ${LINUX:+-Dquartz=disabled} ${DARWIN:+-Dquartz=enabled} -Dxcb=disabled -Dxlib=disabled -Dzlib=disabled \
+  ${LINUX:+-Dquartz=disabled} ${DARWIN:+-Dquartz=enabled} -Dtee=disabled -Dxcb=disabled -Dxlib=disabled -Dzlib=disabled \
   -Dtests=disabled -Dspectre=disabled -Dsymbol-lookup=disabled
 meson install -C _build --tag devel
 
