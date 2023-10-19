@@ -54,7 +54,7 @@ for flavour in osx-x64 osx-arm64; do
     export FLAGS="-fno-stack-check"
     # Prevent use of API newer than the deployment target
     export FLAGS+=" -Werror=unguarded-availability-new"
-    export MESON="--cross-file=$PWD/$PLATFORM/meson.ini"
+    export MESON="--cross-file=$PWD/platforms/$PLATFORM/meson.ini"
 
     if [ $PLATFORM = "osx-arm64" ]; then
       # ARM64 builds work via cross compilation from an x86_64 machine
@@ -79,7 +79,7 @@ if ! [ -x "$(command -v docker)" ]; then
 fi
 
 # Update base images
-for baseimage in alpine:3.12 centos:7 debian:bullseye; do
+for baseimage in alpine:3.15 amazonlinux:2 debian:bullseye debian:buster; do
   docker pull $baseimage
 done
 
@@ -87,7 +87,7 @@ done
 for flavour in win-x64 win-x86 win-arm64; do
   if [ $PLATFORM = "all" ] || [ $PLATFORM = $flavour ]; then
     echo "Building $flavour..."
-    docker build -t vips-dev-win32 win32
+    docker build -t vips-dev-win32 platforms/win32
     docker run --rm -e "VERSION_VIPS=$VERSION_VIPS" -e "PLATFORM=$flavour" -v $PWD:/packaging vips-dev-win32 sh -c "/packaging/build/win.sh"
   fi
 done
@@ -96,7 +96,7 @@ done
 for flavour in linux-x64 linux-arm linux-arm64 linux-musl-x64 linux-musl-arm64; do
   if [ $PLATFORM = "all" ] || [ $PLATFORM = $flavour ]; then
     echo "Building $flavour..."
-    docker build --cache-from vips-dev-$flavour --build-arg BUILDKIT_INLINE_CACHE=1 -t vips-dev-$flavour $flavour
+    docker build --cache-from vips-dev-$flavour --build-arg BUILDKIT_INLINE_CACHE=1 -t vips-dev-$flavour platforms/$flavour
     docker run --rm -e "VERSION_VIPS=$VERSION_VIPS" -e VERSION_LATEST_REQUIRED -v $PWD:/packaging vips-dev-$flavour sh -c "/packaging/build/lin.sh"
   fi
 done
