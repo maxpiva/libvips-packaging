@@ -6,7 +6,7 @@ if [ $# -lt 1 ]; then
   echo "Usage: $0 VERSION [PLATFORM]"
   echo "Build shared libraries for libvips and its dependencies via containers"
   echo
-  echo "Please specify the libvips VERSION, e.g. 8.14.5"
+  echo "Please specify the libvips VERSION, e.g. 8.15.0-rc1"
   echo
   echo "Optionally build for only one PLATFORM, defaults to building for all"
   echo
@@ -79,7 +79,7 @@ if ! [ -x "$(command -v docker)" ]; then
 fi
 
 # Update base images
-for baseimage in alpine:3.15 amazonlinux:2 debian:bullseye debian:buster; do
+for baseimage in alpine:3.15 amazonlinux:2 debian:bullseye; do
   docker pull $baseimage
 done
 
