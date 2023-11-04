@@ -99,9 +99,9 @@ unset PKG_CONFIG_PATH
 CURL="curl --silent --location --retry 3 --retry-max-time 30"
 
 # Dependency version numbers
-VERSION_ZLIB_NG=2.1.3
+VERSION_ZLIB_NG=2.1.4
 VERSION_FFI=3.4.4
-VERSION_GLIB=2.78.0
+VERSION_GLIB=2.78.1
 VERSION_XML2=2.11.5
 VERSION_EXIF=0.6.24
 VERSION_LCMS2=2.15
@@ -125,7 +125,7 @@ VERSION_FRIBIDI=1.0.13
 VERSION_PANGO=1.51.0
 VERSION_RSVG=2.57.0
 VERSION_AOM=3.7.0
-VERSION_HEIF=1.17.1
+VERSION_HEIF=1.17.3
 VERSION_CGIF=0.3.2
 
 # Remove patch version component
@@ -213,7 +213,7 @@ $CURL https://github.com/zlib-ng/zlib-ng/archive/${VERSION_ZLIB_NG}.tar.gz | tar
 cd ${DEPS}/zlib-ng
 CFLAGS="${CFLAGS} -O3" cmake -G"Unix Makefiles" \
   -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=Release \
-  -DBUILD_SHARED_LIBS=FALSE -DZLIB_COMPAT=TRUE
+  -DBUILD_SHARED_LIBS=FALSE -DZLIB_COMPAT=TRUE -DWITH_ARMV6=FALSE
 make install/strip
 
 mkdir ${DEPS}/ffi
@@ -226,7 +226,7 @@ make install-strip
 mkdir ${DEPS}/glib
 $CURL https://download.gnome.org/sources/glib/$(without_patch $VERSION_GLIB)/glib-${VERSION_GLIB}.tar.xz | tar xJC ${DEPS}/glib --strip-components=1
 cd ${DEPS}/glib
-$CURL https://gist.github.com/kleisauke/284d685efa00908da99ea6afbaaf39ae/raw/e826724a837825226057347b75567059dabc85d4/glib-without-gregex.patch | patch -p1
+$CURL https://gist.githubusercontent.com/lovell/8d0de84a57dd10220cdeb8f64d7dd9ce/raw/1c0a5b5e1d5731bc1557df789e6d85b97f6a69dc/glib-without-gregex.patch | patch -p1
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
   --force-fallback-for=gvdb -Dnls=disabled -Dtests=false -Dinstalled_tests=false -Dlibmount=disabled -Dlibelf=disabled \
   -Dglib_assert=false -Dglib_checks=false ${DARWIN:+-Dbsymbolic_functions=false}
@@ -332,7 +332,7 @@ mkdir ${DEPS}/hwy
 $CURL https://github.com/google/highway/archive/${VERSION_HWY}.tar.gz | tar xzC ${DEPS}/hwy --strip-components=1
 cd ${DEPS}/hwy
 CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" cmake -G"Unix Makefiles" \
-  -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=Release \
   -DBUILD_SHARED_LIBS=FALSE -DBUILD_TESTING=0 -DHWY_ENABLE_CONTRIB=0 -DHWY_ENABLE_EXAMPLES=0 -DHWY_ENABLE_TESTS=0
 make install/strip
 
