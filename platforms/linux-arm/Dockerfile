@@ -32,7 +32,7 @@ RUN \
     && \
   rustup target add arm-unknown-linux-gnueabihf && \
   ln -s /usr/bin/cmake3 /usr/bin/cmake && \
-  pip3 install meson ninja
+  pip3 install meson ninja packaging
 
 # Download and install crosstool-ng 1.26.0
 WORKDIR /crosstool-ng
