@@ -100,31 +100,31 @@ CURL="curl --silent --location --retry 3 --retry-max-time 30"
 
 # Dependency version numbers
 VERSION_ZLIB_NG=2.1.6
-VERSION_FFI=3.4.4
-VERSION_GLIB=2.79.0
-VERSION_XML2=2.12.3
+VERSION_FFI=3.4.6
+VERSION_GLIB=2.79.2
+VERSION_XML2=2.12.5
 VERSION_EXIF=0.6.24
 VERSION_LCMS2=2.16
 VERSION_MOZJPEG=4.1.5
-VERSION_PNG16=1.6.40
+VERSION_PNG16=1.6.42
 VERSION_SPNG=0.7.4
 VERSION_IMAGEQUANT=2.4.1
 VERSION_WEBP=1.3.2
 VERSION_TIFF=4.6.0
-VERSION_HWY=1.0.7
+VERSION_HWY=1.1.0
 VERSION_PROXY_LIBINTL=0.4
 VERSION_GDKPIXBUF=2.42.10
 VERSION_FREETYPE=2.13.2
-VERSION_EXPAT=2.5.0
+VERSION_EXPAT=2.6.0
 VERSION_ARCHIVE=3.7.2
 VERSION_FONTCONFIG=2.15.0
 VERSION_HARFBUZZ=8.3.0
-VERSION_PIXMAN=0.43.0
+VERSION_PIXMAN=0.43.2
 VERSION_CAIRO=1.18.0
 VERSION_FRIBIDI=1.0.13
-VERSION_PANGO=1.51.0
-VERSION_RSVG=2.57.1
-VERSION_AOM=3.8.0
+VERSION_PANGO=1.51.2
+VERSION_RSVG=2.57.91
+VERSION_AOM=3.8.1
 VERSION_HEIF=1.17.6
 VERSION_CGIF=0.3.2
 
@@ -181,7 +181,7 @@ version_latest "harfbuzz" "$VERSION_HARFBUZZ" "1299"
 version_latest "pixman" "$VERSION_PIXMAN" "3648"
 version_latest "cairo" "$VERSION_CAIRO" "247"
 version_latest "fribidi" "$VERSION_FRIBIDI" "857"
-#version_latest "pango" "$VERSION_PANGO" "11783" https://gitlab.gnome.org/GNOME/pango/-/issues/760
+version_latest "pango" "$VERSION_PANGO" "11783"
 version_latest "rsvg" "$VERSION_RSVG" "5420"
 version_latest "aom" "$VERSION_AOM" "17628"
 version_latest "heif" "$VERSION_HEIF" "strukturag/libheif"
@@ -282,7 +282,7 @@ CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" cmake -G"Unix Makefiles" \
 make install/strip
 if [ "$PLATFORM" == "linux-arm" ]; then
   # Remove -lstdc++ from Libs.private, it won't work with -static-libstdc++
-  sed -i '/^Libs.private:/s/-lstdc++//g' ${TARGET}/lib/pkgconfig/libheif.pc
+  sed -i '/^Libs.private:/s/ -lstdc++//' ${TARGET}/lib/pkgconfig/libheif.pc
 fi
 
 mkdir ${DEPS}/jpeg
@@ -355,14 +355,18 @@ meson setup _build --default-library=static --buildtype=release --strip --prefix
   -Dtiff=disabled -Dintrospection=disabled -Dtests=false -Dinstalled_tests=false -Dgio_sniffing=false -Dman=false -Dbuiltin_loaders=png,jpeg
 meson install -C _build --tag devel
 # Include libjpeg and libpng as a dependency of gdk-pixbuf, see: https://gitlab.gnome.org/GNOME/gdk-pixbuf/merge_requests/50
-sed -i'.bak' "s/^\(Requires:.*\)/\1 libjpeg, libpng16/" ${TARGET}/lib/pkgconfig/gdk-pixbuf-2.0.pc
+sed -i'.bak' "/^Requires:/s/$/ libjpeg, libpng16/" ${TARGET}/lib/pkgconfig/gdk-pixbuf-2.0.pc
 
-mkdir ${DEPS}/freetype
-$CURL https://github.com/freetype/freetype/archive/VER-${VERSION_FREETYPE//./-}.tar.gz | tar xzC ${DEPS}/freetype --strip-components=1
-cd ${DEPS}/freetype
-meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
-  -Dzlib=enabled -Dpng=disabled -Dharfbuzz=disabled -Dbrotli=disabled -Dbzip2=disabled
-meson install -C _build --tag devel
+build_freetype() {
+  rm -rf ${DEPS}/freetype
+  mkdir ${DEPS}/freetype
+  $CURL https://github.com/freetype/freetype/archive/VER-${VERSION_FREETYPE//./-}.tar.gz | tar xzC ${DEPS}/freetype --strip-components=1
+  cd ${DEPS}/freetype
+  meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
+    -Dzlib=enabled -Dpng=disabled -Dbrotli=disabled -Dbzip2=disabled "$@"
+  meson install -C _build --tag devel
+}
+build_freetype -Dharfbuzz=disabled
 
 mkdir ${DEPS}/expat
 $CURL https://github.com/libexpat/libexpat/releases/download/R_${VERSION_EXPAT//./_}/expat-${VERSION_EXPAT}.tar.xz | tar xJC ${DEPS}/expat --strip-components=1
@@ -397,6 +401,15 @@ sed -i'.bak' "/subdir('util')/d" meson.build
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
   -Dgobject=disabled -Dicu=disabled -Dtests=disabled -Dintrospection=disabled -Ddocs=disabled -Dbenchmark=disabled ${DARWIN:+-Dcoretext=enabled}
 meson install -C _build --tag devel
+
+# pkg-config provided by Amazon Linux 2 doesn't support circular `Requires` dependencies.
+# https://bugs.freedesktop.org/show_bug.cgi?id=7331
+# https://gitlab.freedesktop.org/pkg-config/pkg-config/-/commit/6d6dd43e75e2bc82cfe6544f8631b1bef6e1cf45
+# TODO(kleisauke): Remove when Amazon Linux 2 reaches EOL.
+sed -i'.bak' "/^Requires:/s/ freetype2,//" ${TARGET}/lib/pkgconfig/harfbuzz.pc
+sed -i'.bak' "/^Libs:/s/$/ -lfreetype/" ${TARGET}/lib/pkgconfig/harfbuzz.pc
+
+build_freetype -Dharfbuzz=enabled
 
 mkdir ${DEPS}/pixman
 $CURL https://cairographics.org/releases/pixman-${VERSION_PIXMAN}.tar.gz | tar xzC ${DEPS}/pixman --strip-components=1
@@ -434,7 +447,7 @@ mkdir ${DEPS}/rsvg
 $CURL https://download.gnome.org/sources/librsvg/$(without_patch $VERSION_RSVG)/librsvg-${VERSION_RSVG}.tar.xz | tar xJC ${DEPS}/rsvg --strip-components=1
 cd ${DEPS}/rsvg
 # Add missing pkg-config deps
-sed -i'.bak' "s/^\(Requires:.*\)/\1 cairo-gobject pangocairo libxml-2.0/" librsvg.pc.in
+sed -i'.bak' "/^Requires:/s/$/ cairo-gobject pangocairo libxml-2.0/" librsvg.pc.in
 # LTO optimization does not work for staticlib+rlib compilation
 sed -i'.bak' "/crate-type = /s/, \"rlib\"//" librsvg-c/Cargo.toml
 # We build Cairo with `-Dzlib=disabled`, which implicitly disables the PDF/PostScript surface backends
