@@ -101,12 +101,12 @@ CURL="curl --silent --location --retry 3 --retry-max-time 30"
 # Dependency version numbers
 VERSION_ZLIB_NG=2.1.6
 VERSION_FFI=3.4.6
-VERSION_GLIB=2.79.2
-VERSION_XML2=2.12.5
+VERSION_GLIB=2.80.0
+VERSION_XML2=2.12.6
 VERSION_EXIF=0.6.24
 VERSION_LCMS2=2.16
 VERSION_MOZJPEG=4.1.5
-VERSION_PNG16=1.6.42
+VERSION_PNG16=1.6.43
 VERSION_SPNG=0.7.4
 VERSION_IMAGEQUANT=2.4.1
 VERSION_WEBP=1.3.2
@@ -115,16 +115,16 @@ VERSION_HWY=1.1.0
 VERSION_PROXY_LIBINTL=0.4
 VERSION_GDKPIXBUF=2.42.10
 VERSION_FREETYPE=2.13.2
-VERSION_EXPAT=2.6.0
+VERSION_EXPAT=2.6.2
 VERSION_ARCHIVE=3.7.2
 VERSION_FONTCONFIG=2.15.0
 VERSION_HARFBUZZ=8.3.0
-VERSION_PIXMAN=0.43.2
+VERSION_PIXMAN=0.43.4
 VERSION_CAIRO=1.18.0
 VERSION_FRIBIDI=1.0.13
-VERSION_PANGO=1.51.2
-VERSION_RSVG=2.57.91
-VERSION_AOM=3.8.1
+VERSION_PANGO=1.52.1
+VERSION_RSVG=2.57.2
+VERSION_AOM=3.8.2
 VERSION_HEIF=1.17.6
 VERSION_CGIF=0.3.2
 
@@ -182,7 +182,7 @@ version_latest "pixman" "$VERSION_PIXMAN" "3648"
 version_latest "cairo" "$VERSION_CAIRO" "247"
 version_latest "fribidi" "$VERSION_FRIBIDI" "857"
 version_latest "pango" "$VERSION_PANGO" "11783"
-version_latest "rsvg" "$VERSION_RSVG" "5420"
+#version_latest "rsvg" "$VERSION_RSVG" "5420" # https://github.com/lovell/sharp-libvips/issues/226
 version_latest "aom" "$VERSION_AOM" "17628"
 version_latest "heif" "$VERSION_HEIF" "strukturag/libheif"
 version_latest "cgif" "$VERSION_CGIF" "dloebl/cgif"
@@ -480,7 +480,7 @@ fi
 # Disable building man pages, gettext po files, tools, and (fuzz-)tests
 sed -i'.bak' "/subdir('man')/{N;N;N;N;d;}" meson.build
 CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" meson setup _build --default-library=shared --buildtype=release --strip --prefix=${TARGET} ${MESON} \
-  -Ddeprecated=false -Dintrospection=disabled -Dmodules=disabled -Dcfitsio=disabled -Dfftw=disabled -Djpeg-xl=disabled \
+  -Ddeprecated=false -Dexamples=false -Dintrospection=disabled -Dmodules=disabled -Dcfitsio=disabled -Dfftw=disabled -Djpeg-xl=disabled \
   -Dmagick=disabled -Dmatio=disabled -Dnifti=disabled -Dopenexr=disabled -Dopenjpeg=disabled -Dopenslide=disabled \
   -Dpdfium=disabled -Dpoppler=disabled -Dquantizr=disabled \
   -Dppm=false -Danalyze=false -Dradiance=false \
