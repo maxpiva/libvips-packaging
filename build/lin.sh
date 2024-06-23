@@ -99,34 +99,33 @@ unset PKG_CONFIG_PATH
 CURL="curl --silent --location --retry 3 --retry-max-time 30"
 
 # Dependency version numbers
-VERSION_ZLIB_NG=2.1.6
+VERSION_ZLIB_NG=2.1.7
 VERSION_FFI=3.4.6
-VERSION_GLIB=2.80.0
-VERSION_XML2=2.12.6
+VERSION_GLIB=2.80.3
+VERSION_XML2=2.13.1
 VERSION_EXIF=0.6.24
 VERSION_LCMS2=2.16
 VERSION_MOZJPEG=4.1.5
 VERSION_PNG16=1.6.43
 VERSION_SPNG=0.7.4
 VERSION_IMAGEQUANT=2.4.1
-VERSION_WEBP=1.3.2
+VERSION_WEBP=1.4.0
 VERSION_TIFF=4.6.0
-VERSION_HWY=1.1.0
+VERSION_HWY=1.2.0
 VERSION_PROXY_LIBINTL=0.4
-VERSION_GDKPIXBUF=2.42.10
 VERSION_FREETYPE=2.13.2
 VERSION_EXPAT=2.6.2
-VERSION_ARCHIVE=3.7.2
+VERSION_ARCHIVE=3.7.4
 VERSION_FONTCONFIG=2.15.0
-VERSION_HARFBUZZ=8.3.1
+VERSION_HARFBUZZ=8.5.0
 VERSION_PIXMAN=0.43.4
 VERSION_CAIRO=1.18.0
-VERSION_FRIBIDI=1.0.13
-VERSION_PANGO=1.52.1
-VERSION_RSVG=2.57.3
-VERSION_AOM=3.8.2
+VERSION_FRIBIDI=1.0.15
+VERSION_PANGO=1.54.0
+VERSION_RSVG=2.58.91
+VERSION_AOM=3.9.1
 VERSION_HEIF=1.17.6
-VERSION_CGIF=0.3.2
+VERSION_CGIF=0.4.1
 
 # Remove patch version component
 without_patch() {
@@ -150,7 +149,7 @@ version_latest() {
     VERSION_SELECTOR="versions"
   fi
   if [[ "$3" == *"/"* ]]; then
-    VERSION_LATEST=$(git ls-remote --tags --refs https://github.com/$3.git | sort -t'/' -k3 -V | awk -F'/' 'END{print $3}' | tr -d 'vV')
+    VERSION_LATEST=$(git -c 'versionsort.suffix=-' ls-remote --tags --refs --sort='v:refname' https://github.com/$3.git | awk -F'/' 'END{print $3}' | tr -d 'v')
   else
     VERSION_LATEST=$($CURL "https://release-monitoring.org/api/v2/versions/?project_id=$3" | jq -j ".$VERSION_SELECTOR[0]" | tr '_' '.')
   fi
@@ -159,7 +158,7 @@ version_latest() {
     echo "$1 version $2 has been superseded by $VERSION_LATEST"
   fi
 }
-version_latest "zlib-ng" "$VERSION_ZLIB_NG" "115592"
+#version_latest "zlib-ng" "$VERSION_ZLIB_NG" "115592" # latest version in release monitoring is a release candidate
 version_latest "ffi" "$VERSION_FFI" "1611"
 version_latest "glib" "$VERSION_GLIB" "10024" "unstable"
 version_latest "xml2" "$VERSION_XML2" "1783"
@@ -172,7 +171,6 @@ version_latest "webp" "$VERSION_WEBP" "webmproject/libwebp"
 version_latest "tiff" "$VERSION_TIFF" "1738"
 version_latest "highway" "$VERSION_HWY" "205809"
 version_latest "proxy-libintl" "$VERSION_PROXY_LIBINTL" "frida/proxy-libintl"
-version_latest "gdkpixbuf" "$VERSION_GDKPIXBUF" "9533"
 version_latest "freetype" "$VERSION_FREETYPE" "854"
 version_latest "expat" "$VERSION_EXPAT" "770"
 version_latest "archive" "$VERSION_ARCHIVE" "1558"
@@ -182,7 +180,7 @@ version_latest "pixman" "$VERSION_PIXMAN" "3648"
 version_latest "cairo" "$VERSION_CAIRO" "247"
 version_latest "fribidi" "$VERSION_FRIBIDI" "857"
 version_latest "pango" "$VERSION_PANGO" "11783"
-#version_latest "rsvg" "$VERSION_RSVG" "5420" # https://github.com/lovell/sharp-libvips/issues/226
+version_latest "rsvg" "$VERSION_RSVG" "5420"
 version_latest "aom" "$VERSION_AOM" "17628"
 version_latest "heif" "$VERSION_HEIF" "strukturag/libheif"
 version_latest "cgif" "$VERSION_CGIF" "dloebl/cgif"
@@ -196,6 +194,7 @@ if [ "$DARWIN" = true ]; then
   if [ "$DARWIN_ARM" = true ]; then
     ${CARGO_HOME}/bin/rustup target add aarch64-apple-darwin
   fi
+  CFLAGS= cargo install cargo-c
 fi
 
 if [ "${PLATFORM%-*}" == "linux-musl" ] || [ "$DARWIN" = true ]; then
@@ -230,7 +229,7 @@ $CURL https://gist.github.com/kleisauke/284d685efa00908da99ea6afbaaf39ae/raw/36e
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
   --force-fallback-for=gvdb -Dintrospection=disabled -Dnls=disabled -Dlibmount=disabled -Dlibelf=disabled \
   -Dtests=false -Dglib_assert=false -Dglib_checks=false ${DARWIN:+-Dbsymbolic_functions=false}
-# bin-devel is needed for glib-compile-resources, as required by gdk-pixbuf
+# bin-devel is needed for glib-compile-resources
 meson install -C _build --tag bin-devel,devel
 
 mkdir ${DEPS}/xml2
@@ -243,6 +242,8 @@ make install-strip
 mkdir ${DEPS}/exif
 $CURL https://github.com/libexif/libexif/releases/download/v${VERSION_EXIF}/libexif-${VERSION_EXIF}.tar.bz2 | tar xjC ${DEPS}/exif --strip-components=1
 cd ${DEPS}/exif
+# https://github.com/libexif/libexif/pull/147
+$CURL https://github.com/lovell/libexif/commit/db84aefa1deb103604c5860dd6486b1dd3af676b.patch | patch -p1
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-nls --without-libiconv-prefix --without-libintl-prefix \
   CPPFLAGS="${CPPFLAGS} -DNO_VERBOSE_TAG_DATA"
@@ -257,10 +258,6 @@ meson install -C _build --tag devel
 mkdir ${DEPS}/aom
 $CURL https://storage.googleapis.com/aom-releases/libaom-${VERSION_AOM}.tar.gz | tar xzC ${DEPS}/aom --strip-components=1
 cd ${DEPS}/aom
-if [ "${PLATFORM%-*}" == "linux-musl" ]; then
-  # https://bugs.chromium.org/p/aomedia/issues/detail?id=2754
-  $CURL https://gist.github.com/lovell/3e70b51079af2c9b78e5a0e6f6ad0e59/raw/92864bf57345f57cf32307dd3b399a6bd430b78e/aom-ensure-thread-stack-size-is-at-least-256-KB.patch | patch -p1
-fi
 mkdir aom_build
 cd aom_build
 AOM_AS_FLAGS="${FLAGS}" cmake -G"Unix Makefiles" \
@@ -336,34 +333,13 @@ CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" cmake -G"Unix Makefiles" \
   -DBUILD_SHARED_LIBS=FALSE -DBUILD_TESTING=0 -DHWY_ENABLE_CONTRIB=0 -DHWY_ENABLE_EXAMPLES=0 -DHWY_ENABLE_TESTS=0
 make install/strip
 
-mkdir ${DEPS}/gdkpixbuf
-$CURL https://download.gnome.org/sources/gdk-pixbuf/$(without_patch $VERSION_GDKPIXBUF)/gdk-pixbuf-${VERSION_GDKPIXBUF}.tar.xz | tar xJC ${DEPS}/gdkpixbuf --strip-components=1
-cd ${DEPS}/gdkpixbuf
-# Skip thumbnailer
-sed -i'.bak' "/subdir('thumbnailer')/d" meson.build
-sed -i'.bak' "/post-install/{N;N;N;N;d;}" meson.build
-# Skip the built-in loaders for BMP, GIF, ICO, PNM, XPM, XBM, TGA, ICNS and QTIF
-sed -i'.bak' "/'bmp':/{N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;d;}" gdk-pixbuf/meson.build
-sed -i'.bak' "/'pnm':/{N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;d;}" gdk-pixbuf/meson.build
-# Skip executables
-sed -i'.bak' "/gdk-pixbuf-csource/{N;N;d;}" gdk-pixbuf/meson.build
-sed -i'.bak' "/loaders_cache = custom/{N;N;N;N;N;N;N;N;N;c\\
-  loaders_cache = []\\
-  loaders_dep = declare_dependency()
-}" gdk-pixbuf/meson.build
-meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
-  -Dtiff=disabled -Dintrospection=disabled -Dtests=false -Dinstalled_tests=false -Dgio_sniffing=false -Dman=false -Dbuiltin_loaders=png,jpeg
-meson install -C _build --tag devel
-# Include libjpeg and libpng as a dependency of gdk-pixbuf, see: https://gitlab.gnome.org/GNOME/gdk-pixbuf/merge_requests/50
-sed -i'.bak' "/^Requires:/s/$/ libjpeg, libpng16/" ${TARGET}/lib/pkgconfig/gdk-pixbuf-2.0.pc
-
 build_freetype() {
   rm -rf ${DEPS}/freetype
   mkdir ${DEPS}/freetype
   $CURL https://github.com/freetype/freetype/archive/VER-${VERSION_FREETYPE//./-}.tar.gz | tar xzC ${DEPS}/freetype --strip-components=1
   cd ${DEPS}/freetype
   meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
-    -Dzlib=enabled -Dpng=disabled -Dbrotli=disabled -Dbzip2=disabled "$@"
+    -Dzlib=enabled -Dpng=enabled -Dbrotli=disabled -Dbzip2=disabled "$@"
   meson install -C _build --tag devel
 }
 build_freetype -Dharfbuzz=disabled
@@ -389,8 +365,7 @@ mkdir ${DEPS}/fontconfig
 $CURL https://www.freedesktop.org/software/fontconfig/release/fontconfig-${VERSION_FONTCONFIG}.tar.xz | tar xJC ${DEPS}/fontconfig --strip-components=1
 cd ${DEPS}/fontconfig
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
-  -Dcache-build=disabled -Ddoc=disabled -Dnls=disabled -Dtests=disabled -Dtools=disabled \
-  ${LINUX:+--sysconfdir=/etc} ${DARWIN:+--sysconfdir=/usr/local/etc}
+  -Dcache-build=disabled -Ddoc=disabled -Dnls=disabled -Dtests=disabled -Dtools=disabled
 meson install -C _build --tag devel
 
 mkdir ${DEPS}/harfbuzz
@@ -406,7 +381,7 @@ meson install -C _build --tag devel
 # https://bugs.freedesktop.org/show_bug.cgi?id=7331
 # https://gitlab.freedesktop.org/pkg-config/pkg-config/-/commit/6d6dd43e75e2bc82cfe6544f8631b1bef6e1cf45
 # TODO(kleisauke): Remove when Amazon Linux 2 reaches EOL.
-sed -i'.bak' "/^Requires:/s/ freetype2,//" ${TARGET}/lib/pkgconfig/harfbuzz.pc
+sed -i'.bak' "/^Requires:/s/ freetype2.*,//" ${TARGET}/lib/pkgconfig/harfbuzz.pc
 sed -i'.bak' "/^Libs:/s/$/ -lfreetype/" ${TARGET}/lib/pkgconfig/harfbuzz.pc
 
 build_freetype -Dharfbuzz=enabled
@@ -437,30 +412,32 @@ meson install -C _build --tag devel
 mkdir ${DEPS}/pango
 $CURL https://download.gnome.org/sources/pango/$(without_patch $VERSION_PANGO)/pango-${VERSION_PANGO}.tar.xz | tar xJC ${DEPS}/pango --strip-components=1
 cd ${DEPS}/pango
-# Disable utils, examples, tests and tools
-sed -i'.bak' "/subdir('utils')/{N;N;N;d;}" meson.build
+# Disable utils and tools
+sed -i'.bak' "/subdir('utils')/{N;d;}" meson.build
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
-  -Dgtk_doc=false -Dintrospection=disabled -Dfontconfig=enabled
+  -Ddocumentation=false -Dbuild-testsuite=false -Dbuild-examples=false -Dintrospection=disabled -Dfontconfig=enabled
 meson install -C _build --tag devel
 
 mkdir ${DEPS}/rsvg
 $CURL https://download.gnome.org/sources/librsvg/$(without_patch $VERSION_RSVG)/librsvg-${VERSION_RSVG}.tar.xz | tar xJC ${DEPS}/rsvg --strip-components=1
 cd ${DEPS}/rsvg
-# Add missing pkg-config deps
-sed -i'.bak' "/^Requires:/s/$/ cairo-gobject pangocairo libxml-2.0/" librsvg.pc.in
-# LTO optimization does not work for staticlib+rlib compilation
-sed -i'.bak' "/crate-type = /s/, \"rlib\"//" librsvg-c/Cargo.toml
+# Disallow GIF and WebP embedded in SVG images
+sed -i'.bak' "/image = /s/, \"gif\", \"webp\"//" rsvg/Cargo.toml
 # We build Cairo with `-Dzlib=disabled`, which implicitly disables the PDF/PostScript surface backends
 sed -i'.bak' "/cairo-rs = /s/, \"pdf\", \"ps\"//" {librsvg-c,rsvg}/Cargo.toml
-# Remove the --static flag from the PKG_CONFIG env since Rust does not
-# support that. Build with PKG_CONFIG_ALL_STATIC=1 instead.
-PKG_CONFIG=${PKG_CONFIG/ --static/} ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
-  --disable-introspection --disable-pixbuf-loader ${DARWIN:+--disable-Bsymbolic}
 # Skip build of rsvg-convert
-PKG_CONFIG_ALL_STATIC=1 make install-strip bin_SCRIPTS=
+sed -i'.bak' "/subdir('rsvg_convert')/d" meson.build
+# Regenerate the lockfile after making the above changes
+cargo generate-lockfile
+# Remove the --static flag from the PKG_CONFIG env since Rust does not
+# parse that correctly.
+PKG_CONFIG=${PKG_CONFIG/ --static/} meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
+  -Dintrospection=disabled -Dpixbuf{,-loader}=disabled -Ddocs=disabled -Dvala=disabled -Dtests=false \
+  ${RUST_TARGET:+-Dtriplet=$RUST_TARGET}
+meson install -C _build --tag devel
 
 mkdir ${DEPS}/cgif
-$CURL https://github.com/dloebl/cgif/archive/V${VERSION_CGIF}.tar.gz | tar xzC ${DEPS}/cgif --strip-components=1
+$CURL https://github.com/dloebl/cgif/archive/v${VERSION_CGIF}.tar.gz | tar xzC ${DEPS}/cgif --strip-components=1
 cd ${DEPS}/cgif
 CFLAGS="${CFLAGS} -O3" meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
   -Dtests=false
@@ -469,6 +446,8 @@ meson install -C _build --tag devel
 mkdir ${DEPS}/vips
 $CURL https://github.com/libvips/libvips/releases/download/v${VERSION_VIPS}/vips-$(without_prerelease $VERSION_VIPS).tar.xz | tar xJC ${DEPS}/vips --strip-components=1
 cd ${DEPS}/vips
+# Disable HBR support in heifsave
+$CURL https://github.com/kleisauke/libvips/commit/ad921cf9396dc5a224e93c71b601e87bd3a8a521.patch | patch -p1
 if [ "$LINUX" = true ]; then
   # Ensure symbols from external libs (except for libglib-2.0.a and libgobject-2.0.a) are not exposed
   EXCLUDE_LIBS=$(find ${TARGET}/lib -maxdepth 1 -name '*.a' ! -name 'libglib-2.0.a' ! -name 'libgobject-2.0.a' -printf "-Wl,--exclude-libs=%f ")
@@ -563,7 +542,6 @@ printf "{\n\
   \"fontconfig\": \"${VERSION_FONTCONFIG}\",\n\
   \"freetype\": \"${VERSION_FREETYPE}\",\n\
   \"fribidi\": \"${VERSION_FRIBIDI}\",\n\
-  \"gdkpixbuf\": \"${VERSION_GDKPIXBUF}\",\n\
   \"glib\": \"${VERSION_GLIB}\",\n\
   \"harfbuzz\": \"${VERSION_HARFBUZZ}\",\n\
   \"heif\": \"${VERSION_HEIF}\",\n\

@@ -18,7 +18,7 @@ RUN \
     cmake3 \
     gperf \
     jq \
-    nasm \
+    openssl-devel \
     python3 \
     # Needed by crosstool-ng
     help2man \
@@ -31,6 +31,7 @@ RUN \
     --profile minimal \
     && \
   rustup target add arm-unknown-linux-gnueabihf && \
+  cargo install cargo-c && \
   ln -s /usr/bin/cmake3 /usr/bin/cmake && \
   pip3 install meson ninja packaging
 
