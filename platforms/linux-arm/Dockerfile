@@ -33,7 +33,7 @@ RUN \
   rustup target add arm-unknown-linux-gnueabihf && \
   cargo install cargo-c && \
   ln -s /usr/bin/cmake3 /usr/bin/cmake && \
-  pip3 install meson ninja packaging
+  pip3 install meson ninja packaging tomli
 
 # Download and install crosstool-ng 1.26.0
 WORKDIR /crosstool-ng

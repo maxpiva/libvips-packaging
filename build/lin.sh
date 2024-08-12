@@ -99,10 +99,10 @@ unset PKG_CONFIG_PATH
 CURL="curl --silent --location --retry 3 --retry-max-time 30"
 
 # Dependency version numbers
-VERSION_ZLIB_NG=2.1.7
+VERSION_ZLIB_NG=2.2.1
 VERSION_FFI=3.4.6
-VERSION_GLIB=2.80.3
-VERSION_XML2=2.13.1
+VERSION_GLIB=2.81.1
+VERSION_XML2=2.13.3
 VERSION_EXIF=0.6.24
 VERSION_LCMS2=2.16
 VERSION_MOZJPEG=4.1.5
@@ -117,14 +117,14 @@ VERSION_FREETYPE=2.13.2
 VERSION_EXPAT=2.6.2
 VERSION_ARCHIVE=3.7.4
 VERSION_FONTCONFIG=2.15.0
-VERSION_HARFBUZZ=8.5.0
+VERSION_HARFBUZZ=9.0.0
 VERSION_PIXMAN=0.43.4
 VERSION_CAIRO=1.18.0
 VERSION_FRIBIDI=1.0.15
 VERSION_PANGO=1.54.0
-VERSION_RSVG=2.58.91
+VERSION_RSVG=2.58.93
 VERSION_AOM=3.9.1
-VERSION_HEIF=1.17.6
+VERSION_HEIF=1.18.2
 VERSION_CGIF=0.4.1
 
 # Remove patch version component
@@ -158,7 +158,7 @@ version_latest() {
     echo "$1 version $2 has been superseded by $VERSION_LATEST"
   fi
 }
-#version_latest "zlib-ng" "$VERSION_ZLIB_NG" "115592" # latest version in release monitoring is a release candidate
+version_latest "zlib-ng" "$VERSION_ZLIB_NG" "115592"
 version_latest "ffi" "$VERSION_FFI" "1611"
 version_latest "glib" "$VERSION_GLIB" "10024" "unstable"
 version_latest "xml2" "$VERSION_XML2" "1783"
@@ -182,7 +182,7 @@ version_latest "fribidi" "$VERSION_FRIBIDI" "857"
 version_latest "pango" "$VERSION_PANGO" "11783"
 version_latest "rsvg" "$VERSION_RSVG" "5420"
 version_latest "aom" "$VERSION_AOM" "17628"
-version_latest "heif" "$VERSION_HEIF" "strukturag/libheif"
+version_latest "heif" "$VERSION_HEIF" "64439"
 version_latest "cgif" "$VERSION_CGIF" "dloebl/cgif"
 if [ "$ALL_AT_VERSION_LATEST" = "false" ]; then exit 1; fi
 
@@ -210,6 +210,9 @@ fi
 mkdir ${DEPS}/zlib-ng
 $CURL https://github.com/zlib-ng/zlib-ng/archive/${VERSION_ZLIB_NG}.tar.gz | tar xzC ${DEPS}/zlib-ng --strip-components=1
 cd ${DEPS}/zlib-ng
+if [ "$MACOSX_DEPLOYMENT_TARGET" = "10.13" ]; then
+  sed -i'.bak' "/-DHAVE_ALIGNED_ALLOC/d" CMakeLists.txt
+fi
 CFLAGS="${CFLAGS} -O3" cmake -G"Unix Makefiles" \
   -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=Release \
   -DBUILD_SHARED_LIBS=FALSE -DZLIB_COMPAT=TRUE -DWITH_ARMV6=FALSE
@@ -219,7 +222,7 @@ mkdir ${DEPS}/ffi
 $CURL https://github.com/libffi/libffi/releases/download/v${VERSION_FFI}/libffi-${VERSION_FFI}.tar.gz | tar xzC ${DEPS}/ffi --strip-components=1
 cd ${DEPS}/ffi
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
-  --disable-builddir --disable-multi-os-directory --disable-raw-api --disable-structs
+  --disable-builddir --disable-multi-os-directory --disable-raw-api --disable-structs --disable-docs
 make install-strip
 
 mkdir ${DEPS}/glib
@@ -227,7 +230,7 @@ $CURL https://download.gnome.org/sources/glib/$(without_patch $VERSION_GLIB)/gli
 cd ${DEPS}/glib
 $CURL https://gist.github.com/kleisauke/284d685efa00908da99ea6afbaaf39ae/raw/36e32c79e7962c5ea96cbb3f9c629e9145253e30/glib-without-gregex.patch | patch -p1
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
-  --force-fallback-for=gvdb -Dintrospection=disabled -Dnls=disabled -Dlibmount=disabled -Dlibelf=disabled \
+  --force-fallback-for=gvdb -Dintrospection=disabled -Dnls=disabled -Dlibmount=disabled -Dsysprof=disabled -Dlibelf=disabled \
   -Dtests=false -Dglib_assert=false -Dglib_checks=false ${DARWIN:+-Dbsymbolic_functions=false}
 # bin-devel is needed for glib-compile-resources
 meson install -C _build --tag bin-devel,devel
@@ -235,9 +238,9 @@ meson install -C _build --tag bin-devel,devel
 mkdir ${DEPS}/xml2
 $CURL https://download.gnome.org/sources/libxml2/$(without_patch $VERSION_XML2)/libxml2-${VERSION_XML2}.tar.xz | tar xJC ${DEPS}/xml2 --strip-components=1
 cd ${DEPS}/xml2
-./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
-  --with-minimum --with-reader --with-writer --with-valid --with-http --with-tree --with-zlib --without-python --without-lzma
-make install-strip
+meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
+  -Dminimum=true
+meson install -C _build --tag devel
 
 mkdir ${DEPS}/exif
 $CURL https://github.com/libexif/libexif/releases/download/v${VERSION_EXIF}/libexif-${VERSION_EXIF}.tar.bz2 | tar xjC ${DEPS}/exif --strip-components=1
@@ -247,7 +250,7 @@ $CURL https://github.com/lovell/libexif/commit/db84aefa1deb103604c5860dd6486b1dd
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-nls --without-libiconv-prefix --without-libintl-prefix \
   CPPFLAGS="${CPPFLAGS} -DNO_VERBOSE_TAG_DATA"
-make install-strip
+make install-strip doc_DATA=
 
 mkdir ${DEPS}/lcms2
 $CURL https://github.com/mm2/Little-CMS/releases/download/lcms${VERSION_LCMS2}/lcms2-${VERSION_LCMS2}.tar.gz | tar xzC ${DEPS}/lcms2 --strip-components=1
@@ -275,7 +278,7 @@ cd ${DEPS}/heif
 sed -i'.bak' "/^cmake_minimum_required/s/3.16.3/3.12/" CMakeLists.txt
 CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" cmake -G"Unix Makefiles" \
   -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=Release \
-  -DBUILD_SHARED_LIBS=FALSE -DENABLE_PLUGIN_LOADING=0 -DWITH_EXAMPLES=0 -DWITH_LIBDE265=0 -DWITH_X265=0
+  -DBUILD_SHARED_LIBS=FALSE -DBUILD_TESTING=0 -DENABLE_PLUGIN_LOADING=0 -DWITH_EXAMPLES=0 -DWITH_LIBDE265=0 -DWITH_X265=0
 make install/strip
 if [ "$PLATFORM" == "linux-arm" ]; then
   # Remove -lstdc++ from Libs.private, it won't work with -static-libstdc++
@@ -293,14 +296,15 @@ make install/strip
 mkdir ${DEPS}/png16
 $CURL https://downloads.sourceforge.net/project/libpng/libpng16/${VERSION_PNG16}/libpng-${VERSION_PNG16}.tar.xz | tar xJC ${DEPS}/png16 --strip-components=1
 cd ${DEPS}/png16
-./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking
-make install-strip
+./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
+  --disable-tools --without-binconfigs --disable-unversioned-libpng-config
+make install-strip dist_man_MANS=
 
 mkdir ${DEPS}/spng
 $CURL https://github.com/randy408/libspng/archive/v${VERSION_SPNG}.tar.gz | tar xzC ${DEPS}/spng --strip-components=1
 cd ${DEPS}/spng
 CFLAGS="${CFLAGS} -O3 -DSPNG_SSE=4" meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
-  -Dstatic_zlib=true
+  -Dstatic_zlib=true -Dbuild_examples=false
 meson install -C _build --tag devel
 
 mkdir ${DEPS}/imagequant
@@ -314,7 +318,7 @@ $CURL https://storage.googleapis.com/downloads.webmproject.org/releases/webp/lib
 cd ${DEPS}/webp
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --enable-libwebpmux --enable-libwebpdemux
-make install-strip
+make install-strip bin_PROGRAMS= noinst_PROGRAMS= man_MANS=
 
 mkdir ${DEPS}/tiff
 $CURL https://download.osgeo.org/libtiff/tiff-${VERSION_TIFF}.tar.gz | tar xzC ${DEPS}/tiff --strip-components=1 \
@@ -323,7 +327,7 @@ cd ${DEPS}/tiff
 # Propagate -pthread into CFLAGS to ensure WebP support
 CFLAGS="${CFLAGS} -pthread" ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-tools --disable-tests --disable-contrib --disable-docs --disable-mdi --disable-pixarlog --disable-old-jpeg --disable-cxx --disable-lzma --disable-zstd
-make install-strip
+make install-strip noinst_PROGRAMS= dist_doc_DATA=
 
 mkdir ${DEPS}/hwy
 $CURL https://github.com/google/highway/archive/${VERSION_HWY}.tar.gz | tar xzC ${DEPS}/hwy --strip-components=1
@@ -350,7 +354,7 @@ cd ${DEPS}/expat
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared \
   --disable-dependency-tracking --without-xmlwf --without-docbook --without-getrandom --without-sys-getrandom \
   --without-libbsd --without-examples --without-tests
-make install-strip
+make install-strip dist_cmake_DATA= nodist_cmake_DATA=
 
 mkdir ${DEPS}/archive
 $CURL https://github.com/libarchive/libarchive/releases/download/v${VERSION_ARCHIVE}/libarchive-${VERSION_ARCHIVE}.tar.xz | tar xJC ${DEPS}/archive --strip-components=1
@@ -359,7 +363,7 @@ cd ${DEPS}/archive
   --disable-bsdtar --disable-bsdcat --disable-bsdcpio --disable-bsdunzip --disable-posix-regex-lib --disable-xattr --disable-acl \
   --without-bz2lib --without-libb2 --without-iconv --without-lz4 --without-zstd --without-lzma \
   --without-lzo2 --without-cng --without-openssl --without-xml2 --without-expat
-make install-strip
+make install-strip libarchive_man_MANS=
 
 mkdir ${DEPS}/fontconfig
 $CURL https://www.freedesktop.org/software/fontconfig/release/fontconfig-${VERSION_FONTCONFIG}.tar.xz | tar xJC ${DEPS}/fontconfig --strip-components=1
@@ -427,6 +431,13 @@ sed -i'.bak' "/image = /s/, \"gif\", \"webp\"//" rsvg/Cargo.toml
 sed -i'.bak' "/cairo-rs = /s/, \"pdf\", \"ps\"//" {librsvg-c,rsvg}/Cargo.toml
 # Skip build of rsvg-convert
 sed -i'.bak' "/subdir('rsvg_convert')/d" meson.build
+# https://github.com/etemesi254/zune-image/pull/187
+# https://github.com/bevyengine/bevy/issues/14117#issuecomment-2236518551
+# https://doc.rust-lang.org/cargo/reference/overriding-dependencies.html#the-patch-section
+cat >> Cargo.toml <<EOL
+[patch.crates-io]
+zune-jpeg = { git = "https://github.com/ironpeak/zune-image.git", rev = "eebb01b" }
+EOL
 # Regenerate the lockfile after making the above changes
 cargo generate-lockfile
 # Remove the --static flag from the PKG_CONFIG env since Rust does not
@@ -447,7 +458,7 @@ mkdir ${DEPS}/vips
 $CURL https://github.com/libvips/libvips/releases/download/v${VERSION_VIPS}/vips-$(without_prerelease $VERSION_VIPS).tar.xz | tar xJC ${DEPS}/vips --strip-components=1
 cd ${DEPS}/vips
 # Disable HBR support in heifsave
-$CURL https://github.com/kleisauke/libvips/commit/ad921cf9396dc5a224e93c71b601e87bd3a8a521.patch | patch -p1
+$CURL https://github.com/libvips/build-win64-mxe/raw/v${VERSION_VIPS}/build/patches/vips-8-heifsave-disable-hbr-support.patch | patch -p1
 if [ "$LINUX" = true ]; then
   # Ensure symbols from external libs (except for libglib-2.0.a and libgobject-2.0.a) are not exposed
   EXCLUDE_LIBS=$(find ${TARGET}/lib -maxdepth 1 -name '*.a' ! -name 'libglib-2.0.a' ! -name 'libgobject-2.0.a' -printf "-Wl,--exclude-libs=%f ")
