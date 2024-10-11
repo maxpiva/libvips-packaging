@@ -99,31 +99,31 @@ unset PKG_CONFIG_PATH
 CURL="curl --silent --location --retry 3 --retry-max-time 30"
 
 # Dependency version numbers
-VERSION_ZLIB_NG=2.2.1
+VERSION_ZLIB_NG=2.2.2
 VERSION_FFI=3.4.6
-VERSION_GLIB=2.81.1
-VERSION_XML2=2.13.3
+VERSION_GLIB=2.82.1
+VERSION_XML2=2.13.4
 VERSION_EXIF=0.6.24
 VERSION_LCMS2=2.16
 VERSION_MOZJPEG=4.1.5
-VERSION_PNG16=1.6.43
+VERSION_PNG16=1.6.44
 VERSION_SPNG=0.7.4
 VERSION_IMAGEQUANT=2.4.1
 VERSION_WEBP=1.4.0
-VERSION_TIFF=4.6.0
+VERSION_TIFF=4.7.0
 VERSION_HWY=1.2.0
 VERSION_PROXY_LIBINTL=0.4
-VERSION_FREETYPE=2.13.2
-VERSION_EXPAT=2.6.2
-VERSION_ARCHIVE=3.7.4
+VERSION_FREETYPE=2.13.3
+VERSION_EXPAT=2.6.3
+VERSION_ARCHIVE=3.7.6
 VERSION_FONTCONFIG=2.15.0
-VERSION_HARFBUZZ=9.0.0
+VERSION_HARFBUZZ=10.0.1
 VERSION_PIXMAN=0.43.4
-VERSION_CAIRO=1.18.0
-VERSION_FRIBIDI=1.0.15
+VERSION_CAIRO=1.18.2
+VERSION_FRIBIDI=1.0.16
 VERSION_PANGO=1.54.0
-VERSION_RSVG=2.58.93
-VERSION_AOM=3.9.1
+VERSION_RSVG=2.59.1
+VERSION_AOM=3.10.0
 VERSION_HEIF=1.18.2
 VERSION_CGIF=0.4.1
 
@@ -231,7 +231,7 @@ cd ${DEPS}/glib
 $CURL https://gist.github.com/kleisauke/284d685efa00908da99ea6afbaaf39ae/raw/36e32c79e7962c5ea96cbb3f9c629e9145253e30/glib-without-gregex.patch | patch -p1
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
   --force-fallback-for=gvdb -Dintrospection=disabled -Dnls=disabled -Dlibmount=disabled -Dsysprof=disabled -Dlibelf=disabled \
-  -Dtests=false -Dglib_assert=false -Dglib_checks=false ${DARWIN:+-Dbsymbolic_functions=false}
+  -Dtests=false -Dglib_assert=false -Dglib_checks=false -Dglib_debug=disabled ${DARWIN:+-Dbsymbolic_functions=false}
 # bin-devel is needed for glib-compile-resources
 meson install -C _build --tag bin-devel,devel
 
@@ -402,7 +402,7 @@ mkdir ${DEPS}/cairo
 $CURL https://cairographics.org/releases/cairo-${VERSION_CAIRO}.tar.xz | tar xJC ${DEPS}/cairo --strip-components=1
 cd ${DEPS}/cairo
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
-  ${LINUX:+-Dquartz=disabled} ${DARWIN:+-Dquartz=enabled} -Dtee=disabled -Dxcb=disabled -Dxlib=disabled -Dzlib=disabled \
+  ${LINUX:+-Dquartz=disabled} ${DARWIN:+-Dquartz=enabled} -Dfreetype=enabled -Dfontconfig=enabled -Dtee=disabled -Dxcb=disabled -Dxlib=disabled -Dzlib=disabled \
   -Dtests=disabled -Dspectre=disabled -Dsymbol-lookup=disabled
 meson install -C _build --tag devel
 
@@ -455,7 +455,7 @@ CFLAGS="${CFLAGS} -O3" meson setup _build --default-library=static --buildtype=r
 meson install -C _build --tag devel
 
 mkdir ${DEPS}/vips
-$CURL https://github.com/libvips/libvips/releases/download/v${VERSION_VIPS}/vips-$(without_prerelease $VERSION_VIPS).tar.xz | tar xJC ${DEPS}/vips --strip-components=1
+$CURL https://github.com/libvips/libvips/releases/download/v${VERSION_VIPS}/vips-${VERSION_VIPS}.tar.xz | tar xJC ${DEPS}/vips --strip-components=1
 cd ${DEPS}/vips
 # Disable HBR support in heifsave
 $CURL https://github.com/libvips/build-win64-mxe/raw/v${VERSION_VIPS}/build/patches/vips-8-heifsave-disable-hbr-support.patch | patch -p1
