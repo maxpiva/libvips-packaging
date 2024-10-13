@@ -3,26 +3,13 @@
 libvips and its dependencies are provided as pre-compiled shared libraries
 for the most common operating systems and CPU architectures.
 
-## Used by NetVips
+## Used by NetVips and pyvips
 
-During packaging of NetVips, these binaries are fetched as tarballs from
-this repository via HTTPS and stored within the NuGet package (see
-[`Build.cs`](https://github.com/kleisauke/net-vips/blob/master/build/Build.cs)
-for details).
+These are packaged[^1][^2] and published to both [NuGet](
+https://www.nuget.org/packages/NetVips.Native) and [PyPI](
+https://pypi.org/project/pyvips-binary/).
 
-Finally, the created `.nupkg` are uploaded on NuGet. You can find them here:
-* [NetVips.Native.win-x64](https://www.nuget.org/packages/NetVips.Native.win-x64)
-* [NetVips.Native.win-x86](https://www.nuget.org/packages/NetVips.Native.win-x86)
-* [NetVips.Native.win-arm64](https://www.nuget.org/packages/NetVips.Native.win-arm64)
-* [NetVips.Native.linux-x64](https://www.nuget.org/packages/NetVips.Native.linux-x64)
-* [NetVips.Native.linux-arm](https://www.nuget.org/packages/NetVips.Native.linux-arm)
-* [NetVips.Native.linux-arm64](https://www.nuget.org/packages/NetVips.Native.linux-arm64)
-* [NetVips.Native.linux-musl-x64](https://www.nuget.org/packages/NetVips.Native.linux-musl-x64)
-* [NetVips.Native.linux-musl-arm64](https://www.nuget.org/packages/NetVips.Native.linux-musl-arm64)
-* [NetVips.Native.osx-x64](https://www.nuget.org/packages/NetVips.Native.osx-x64)
-* [NetVips.Native.osx-arm64](https://www.nuget.org/packages/NetVips.Native.osx-arm64)
-
-The version number of these NuGet packages is in sync with libvips' version number.
+The version number of these packages is in sync with libvips' version number.
 
 ## Creating a tarball
 
@@ -63,3 +50,6 @@ These scripts are licensed under the terms of the [Apache 2.0 Licence](LICENSE).
 The shared libraries contained in the tarballs are distributed under
 the terms of [various licences](THIRD-PARTY-NOTICES.md), all of which
 are compatible with the Apache 2.0 Licence.
+
+[^1]: https://github.com/kleisauke/net-vips/blob/master/build/Build.cs
+[^2]: https://github.com/kleisauke/pyvips-binary/blob/main/.github/workflows/build-release.yml
