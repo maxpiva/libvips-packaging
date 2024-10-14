@@ -10,13 +10,23 @@ CURL="curl --silent --location --retry 3 --retry-max-time 30"
 mkdir /vips
 cd /vips
 
+VARIANT=static
+
 case "${PLATFORM#*-}" in
   x64) ARCH=w64 ;;
+  x64.net452)
+    ARCH=w64
+    VARIANT=static-ffi
+    ;;
   x86) ARCH=w32 ;;
+  x86.net452)
+    ARCH=w64
+    VARIANT=static-ffi
+    ;;
   arm64) ARCH=arm64 ;;
 esac
 
-FILENAME="vips-dev-${ARCH}-web-${VERSION_VIPS}-static-ffi.zip"
+FILENAME="vips-dev-${ARCH}-web-${VERSION_VIPS}-${VARIANT}.zip"
 URL="https://github.com/libvips/build-win64-mxe/releases/download/v${VERSION_VIPS}/${FILENAME}"
 echo "Downloading $URL"
 $CURL -O $URL
@@ -34,10 +44,7 @@ $CURL -O https://raw.githubusercontent.com/kleisauke/libvips-packaging/main/THIR
 tar czf /packaging/libvips-${VERSION_VIPS}-${PLATFORM}.tar.gz \
   include \
   lib/glib-2.0 \
-  lib/libvips.lib \
-  lib/libglib-2.0.lib \
-  lib/libgobject-2.0.lib \
-  lib/*.dll \
+  lib/*.{dll,lib} \
   versions.json \
   THIRD-PARTY-NOTICES.md
 
