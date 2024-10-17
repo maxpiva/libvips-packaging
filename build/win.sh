@@ -20,7 +20,7 @@ case "${PLATFORM#*-}" in
     ;;
   x86) ARCH=w32 ;;
   x86.net452)
-    ARCH=w64
+    ARCH=w32
     VARIANT=static-ffi
     ;;
   arm64) ARCH=arm64 ;;
