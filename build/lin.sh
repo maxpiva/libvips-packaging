@@ -101,7 +101,7 @@ CURL="curl --silent --location --retry 3 --retry-max-time 30"
 # Dependency version numbers
 VERSION_ZLIB_NG=2.2.2
 VERSION_FFI=3.4.6
-VERSION_GLIB=2.82.1
+VERSION_GLIB=2.82.2
 VERSION_XML2=2.13.4
 VERSION_EXIF=0.6.24
 VERSION_LCMS2=2.16
@@ -115,7 +115,7 @@ VERSION_HWY=1.2.0
 VERSION_PROXY_LIBINTL=0.4
 VERSION_FREETYPE=2.13.3
 VERSION_EXPAT=2.6.3
-VERSION_ARCHIVE=3.7.6
+VERSION_ARCHIVE=3.7.7
 VERSION_FONTCONFIG=2.15.0
 VERSION_HARFBUZZ=10.0.1
 VERSION_PIXMAN=0.43.4
@@ -167,7 +167,7 @@ version_latest "lcms2" "$VERSION_LCMS2" "9815"
 version_latest "mozjpeg" "$VERSION_MOZJPEG" "mozilla/mozjpeg"
 version_latest "png" "$VERSION_PNG16" "1705"
 version_latest "spng" "$VERSION_SPNG" "24289"
-version_latest "webp" "$VERSION_WEBP" "webmproject/libwebp"
+version_latest "webp" "$VERSION_WEBP" "1761"
 version_latest "tiff" "$VERSION_TIFF" "1738"
 version_latest "highway" "$VERSION_HWY" "205809"
 version_latest "proxy-libintl" "$VERSION_PROXY_LIBINTL" "frida/proxy-libintl"
@@ -194,7 +194,7 @@ if [ "$DARWIN" = true ]; then
   if [ "$DARWIN_ARM" = true ]; then
     ${CARGO_HOME}/bin/rustup target add aarch64-apple-darwin
   fi
-  CFLAGS= cargo install cargo-c
+  CFLAGS= cargo install cargo-c --locked
 fi
 
 if [ "${PLATFORM%-*}" == "linux-musl" ] || [ "$DARWIN" = true ]; then
@@ -438,8 +438,8 @@ cat >> Cargo.toml <<EOL
 [patch.crates-io]
 zune-jpeg = { git = "https://github.com/ironpeak/zune-image.git", rev = "eebb01b" }
 EOL
-# Regenerate the lockfile after making the above changes
-cargo generate-lockfile
+# Regenerate the lockfile for zune-jpeg
+cargo update zune-jpeg
 # Remove the --static flag from the PKG_CONFIG env since Rust does not
 # parse that correctly.
 PKG_CONFIG=${PKG_CONFIG/ --static/} meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
