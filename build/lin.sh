@@ -99,33 +99,33 @@ unset PKG_CONFIG_PATH
 CURL="curl --silent --location --retry 3 --retry-max-time 30"
 
 # Dependency version numbers
-VERSION_ZLIB_NG=2.2.2
-VERSION_FFI=3.4.6
-VERSION_GLIB=2.82.2
-VERSION_XML2=2.13.4
-VERSION_EXIF=0.6.24
-VERSION_LCMS2=2.16
+VERSION_ZLIB_NG=2.2.4
+VERSION_FFI=3.4.7
+VERSION_GLIB=2.83.3
+VERSION_XML2=2.13.6
+VERSION_EXIF=0.6.25
+VERSION_LCMS2=2.17
 VERSION_MOZJPEG=4.1.5
-VERSION_PNG16=1.6.44
+VERSION_PNG16=1.6.47
 VERSION_SPNG=0.7.4
 VERSION_IMAGEQUANT=2.4.1
-VERSION_WEBP=1.4.0
+VERSION_WEBP=1.5.0
 VERSION_TIFF=4.7.0
 VERSION_HWY=1.2.0
 VERSION_PROXY_LIBINTL=0.4
 VERSION_FREETYPE=2.13.3
-VERSION_EXPAT=2.6.3
+VERSION_EXPAT=2.6.4
 VERSION_ARCHIVE=3.7.7
-VERSION_FONTCONFIG=2.15.0
-VERSION_HARFBUZZ=10.0.1
-VERSION_PIXMAN=0.43.4
+VERSION_FONTCONFIG=2.16.0
+VERSION_HARFBUZZ=10.2.0
+VERSION_PIXMAN=0.44.2
 VERSION_CAIRO=1.18.2
 VERSION_FRIBIDI=1.0.16
-VERSION_PANGO=1.54.0
-VERSION_RSVG=2.59.1
-VERSION_AOM=3.10.0
-VERSION_HEIF=1.18.2
-VERSION_CGIF=0.4.1
+VERSION_PANGO=1.56.1
+VERSION_RSVG=2.59.2
+VERSION_AOM=3.12.0
+VERSION_HEIF=1.19.5
+VERSION_CGIF=0.5.0
 
 # Remove patch version component
 without_patch() {
@@ -179,7 +179,7 @@ version_latest "harfbuzz" "$VERSION_HARFBUZZ" "1299"
 version_latest "pixman" "$VERSION_PIXMAN" "3648"
 version_latest "cairo" "$VERSION_CAIRO" "247"
 version_latest "fribidi" "$VERSION_FRIBIDI" "857"
-version_latest "pango" "$VERSION_PANGO" "11783"
+version_latest "pango" "$VERSION_PANGO" "11783" "unstable"
 version_latest "rsvg" "$VERSION_RSVG" "5420"
 version_latest "aom" "$VERSION_AOM" "17628"
 version_latest "heif" "$VERSION_HEIF" "64439"
@@ -210,9 +210,6 @@ fi
 mkdir ${DEPS}/zlib-ng
 $CURL https://github.com/zlib-ng/zlib-ng/archive/${VERSION_ZLIB_NG}.tar.gz | tar xzC ${DEPS}/zlib-ng --strip-components=1
 cd ${DEPS}/zlib-ng
-if [ "$MACOSX_DEPLOYMENT_TARGET" = "10.13" ]; then
-  sed -i'.bak' "/-DHAVE_ALIGNED_ALLOC/d" CMakeLists.txt
-fi
 CFLAGS="${CFLAGS} -O3" cmake -G"Unix Makefiles" \
   -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=Release \
   -DBUILD_SHARED_LIBS=FALSE -DZLIB_COMPAT=TRUE -DWITH_ARMV6=FALSE
@@ -243,10 +240,8 @@ meson setup _build --default-library=static --buildtype=release --strip --prefix
 meson install -C _build --tag devel
 
 mkdir ${DEPS}/exif
-$CURL https://github.com/libexif/libexif/releases/download/v${VERSION_EXIF}/libexif-${VERSION_EXIF}.tar.bz2 | tar xjC ${DEPS}/exif --strip-components=1
+$CURL https://github.com/libexif/libexif/releases/download/v${VERSION_EXIF}/libexif-${VERSION_EXIF}.tar.xz | tar xJC ${DEPS}/exif --strip-components=1
 cd ${DEPS}/exif
-# https://github.com/libexif/libexif/pull/147
-$CURL https://github.com/lovell/libexif/commit/db84aefa1deb103604c5860dd6486b1dd3af676b.patch | patch -p1
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-nls --without-libiconv-prefix --without-libintl-prefix \
   CPPFLAGS="${CPPFLAGS} -DNO_VERBOSE_TAG_DATA"
@@ -255,7 +250,8 @@ make install-strip doc_DATA=
 mkdir ${DEPS}/lcms2
 $CURL https://github.com/mm2/Little-CMS/releases/download/lcms${VERSION_LCMS2}/lcms2-${VERSION_LCMS2}.tar.gz | tar xzC ${DEPS}/lcms2 --strip-components=1
 cd ${DEPS}/lcms2
-CFLAGS="${CFLAGS} -O3" meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON}
+CFLAGS="${CFLAGS} -O3" meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
+  -Dtests=disabled 
 meson install -C _build --tag devel
 
 mkdir ${DEPS}/aom
@@ -394,8 +390,8 @@ mkdir ${DEPS}/pixman
 $CURL https://cairographics.org/releases/pixman-${VERSION_PIXMAN}.tar.gz | tar xzC ${DEPS}/pixman --strip-components=1
 cd ${DEPS}/pixman
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
-  -Dlibpng=disabled -Diwmmxt=disabled -Dgtk=disabled -Dopenmp=disabled -Dtests=disabled \
-  ${DARWIN_ARM:+-Da64-neon=disabled}
+  -Dlibpng=disabled -Dgtk=disabled -Dopenmp=disabled -Dtests=disabled -Ddemos=disabled \
+  ${WITHOUT_NEON:+-Da64-neon=disabled}
 meson install -C _build --tag devel
 
 mkdir ${DEPS}/cairo
@@ -431,14 +427,8 @@ sed -i'.bak' "/image = /s/, \"gif\", \"webp\"//" rsvg/Cargo.toml
 sed -i'.bak' "/cairo-rs = /s/, \"pdf\", \"ps\"//" {librsvg-c,rsvg}/Cargo.toml
 # Skip build of rsvg-convert
 sed -i'.bak' "/subdir('rsvg_convert')/d" meson.build
-# https://github.com/etemesi254/zune-image/pull/187
-# https://github.com/bevyengine/bevy/issues/14117#issuecomment-2236518551
-# https://doc.rust-lang.org/cargo/reference/overriding-dependencies.html#the-patch-section
-cat >> Cargo.toml <<EOL
-[patch.crates-io]
-zune-jpeg = { git = "https://github.com/ironpeak/zune-image.git", rev = "eebb01b" }
-EOL
-# Regenerate the lockfile for zune-jpeg
+# Update and regenerate the lockfile for zune-jpeg
+# https://github.com/etemesi254/zune-image/pull/242
 cargo update zune-jpeg
 # Remove the --static flag from the PKG_CONFIG env since Rust does not
 # parse that correctly.
@@ -451,7 +441,7 @@ mkdir ${DEPS}/cgif
 $CURL https://github.com/dloebl/cgif/archive/v${VERSION_CGIF}.tar.gz | tar xzC ${DEPS}/cgif --strip-components=1
 cd ${DEPS}/cgif
 CFLAGS="${CFLAGS} -O3" meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
-  -Dtests=false
+  -Dexamples=false -Dtests=false
 meson install -C _build --tag devel
 
 mkdir ${DEPS}/vips

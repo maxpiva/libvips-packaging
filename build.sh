@@ -47,7 +47,7 @@ for flavour in osx-x64 osx-arm64; do
     export PKG_CONFIG="$(brew --prefix)/bin/pkg-config --static"
 
     # Earliest supported version of macOS
-    export MACOSX_DEPLOYMENT_TARGET="10.13"
+    export MACOSX_DEPLOYMENT_TARGET="10.15"
 
     # Added -fno-stack-check to workaround a stack misalignment bug on macOS 10.15
     # See:
