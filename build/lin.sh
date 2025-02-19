@@ -53,7 +53,7 @@ if [ "$LINUX" = true ]; then
 fi
 
 # The ARMv7 binaries needs to be statically linked against libstdc++, since
-# libstdc++.so.6.0.32 (GLIBCXX_3.4.32) provided by GCC 13.2 isn't available on every OS
+# libstdc++.so.6.0.33 (GLIBCXX_3.4.33) provided by GCC 14.2 isn't available on every OS
 # Note: this is handled in devtoolset in a much better way, see: https://stackoverflow.com/a/19340023
 if [ "$PLATFORM" == "linux-arm" ]; then
   export LDFLAGS+=" -static-libstdc++"
@@ -257,6 +257,8 @@ meson install -C _build --tag devel
 mkdir ${DEPS}/aom
 $CURL https://storage.googleapis.com/aom-releases/libaom-${VERSION_AOM}.tar.gz | tar xzC ${DEPS}/aom --strip-components=1
 cd ${DEPS}/aom
+# https://aomedia-review.googlesource.com/c/aom/+/196649/comment/2cea4b90_c00d6753/
+sed -i'.bak' "/vld1q_s16_x4/s/int16_t/u&/g" aom_dsp/arm/mem_neon.h
 mkdir aom_build
 cd aom_build
 AOM_AS_FLAGS="${FLAGS}" cmake -G"Unix Makefiles" \
