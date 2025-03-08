@@ -101,7 +101,7 @@ CURL="curl --silent --location --retry 3 --retry-max-time 30"
 # Dependency version numbers
 VERSION_ZLIB_NG=2.2.4
 VERSION_FFI=3.4.7
-VERSION_GLIB=2.83.3
+VERSION_GLIB=2.84.0
 VERSION_XML2=2.13.6
 VERSION_EXIF=0.6.25
 VERSION_LCMS2=2.17
@@ -117,14 +117,14 @@ VERSION_FREETYPE=2.13.3
 VERSION_EXPAT=2.6.4
 VERSION_ARCHIVE=3.7.7
 VERSION_FONTCONFIG=2.16.0
-VERSION_HARFBUZZ=10.2.0
+VERSION_HARFBUZZ=10.4.0
 VERSION_PIXMAN=0.44.2
 VERSION_CAIRO=1.18.2
 VERSION_FRIBIDI=1.0.16
 VERSION_PANGO=1.56.1
-VERSION_RSVG=2.59.2
+VERSION_RSVG=2.59.91
 VERSION_AOM=3.12.0
-VERSION_HEIF=1.19.5
+VERSION_HEIF=1.19.7
 VERSION_CGIF=0.5.0
 
 # Remove patch version component
@@ -180,7 +180,7 @@ version_latest "pixman" "$VERSION_PIXMAN" "3648"
 version_latest "cairo" "$VERSION_CAIRO" "247"
 version_latest "fribidi" "$VERSION_FRIBIDI" "857"
 version_latest "pango" "$VERSION_PANGO" "11783" "unstable"
-version_latest "rsvg" "$VERSION_RSVG" "5420"
+version_latest "rsvg" "$VERSION_RSVG" "5420" "unstable"
 version_latest "aom" "$VERSION_AOM" "17628"
 version_latest "heif" "$VERSION_HEIF" "64439"
 version_latest "cgif" "$VERSION_CGIF" "dloebl/cgif"
@@ -225,7 +225,7 @@ make install-strip
 mkdir ${DEPS}/glib
 $CURL https://download.gnome.org/sources/glib/$(without_patch $VERSION_GLIB)/glib-${VERSION_GLIB}.tar.xz | tar xJC ${DEPS}/glib --strip-components=1
 cd ${DEPS}/glib
-$CURL https://gist.github.com/kleisauke/284d685efa00908da99ea6afbaaf39ae/raw/36e32c79e7962c5ea96cbb3f9c629e9145253e30/glib-without-gregex.patch | patch -p1
+$CURL https://gist.github.com/kleisauke/284d685efa00908da99ea6afbaaf39ae/raw/936a6b8013d07d358c6944cc5b5f0e27db707ace/glib-without-gregex.patch | patch -p1
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
   --force-fallback-for=gvdb -Dintrospection=disabled -Dnls=disabled -Dlibmount=disabled -Dsysprof=disabled -Dlibelf=disabled \
   -Dtests=false -Dglib_assert=false -Dglib_checks=false -Dglib_debug=disabled ${DARWIN:+-Dbsymbolic_functions=false}
@@ -429,9 +429,10 @@ sed -i'.bak' "/image = /s/, \"gif\", \"webp\"//" rsvg/Cargo.toml
 sed -i'.bak' "/cairo-rs = /s/, \"pdf\", \"ps\"//" {librsvg-c,rsvg}/Cargo.toml
 # Skip build of rsvg-convert
 sed -i'.bak' "/subdir('rsvg_convert')/d" meson.build
-# Update and regenerate the lockfile for zune-jpeg
-# https://github.com/etemesi254/zune-image/pull/242
-cargo update zune-jpeg
+# https://gitlab.gnome.org/GNOME/librsvg/-/merge_requests/1066#note_2356762
+sed -i'.bak' "/^if host_system in \['windows'/s/, 'linux'//" meson.build
+# Regenerate the lockfile after making the above changes
+cargo update --workspace
 # Remove the --static flag from the PKG_CONFIG env since Rust does not
 # parse that correctly.
 PKG_CONFIG=${PKG_CONFIG/ --static/} meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
