@@ -100,13 +100,13 @@ CURL="curl --silent --location --retry 3 --retry-max-time 30"
 
 # Dependency version numbers
 VERSION_ZLIB_NG=2.2.4
-VERSION_FFI=3.4.7
-VERSION_GLIB=2.84.0
-VERSION_XML2=2.13.6
+VERSION_FFI=3.4.8
+VERSION_GLIB=2.85.0
+VERSION_XML2=2.14.3
 VERSION_EXIF=0.6.25
 VERSION_LCMS2=2.17
 VERSION_MOZJPEG=4.1.5
-VERSION_PNG16=1.6.47
+VERSION_PNG16=1.6.48
 VERSION_SPNG=0.7.4
 VERSION_IMAGEQUANT=2.4.1
 VERSION_WEBP=1.5.0
@@ -114,17 +114,17 @@ VERSION_TIFF=4.7.0
 VERSION_HWY=1.2.0
 VERSION_PROXY_LIBINTL=0.4
 VERSION_FREETYPE=2.13.3
-VERSION_EXPAT=2.6.4
-VERSION_ARCHIVE=3.7.7
-VERSION_FONTCONFIG=2.16.0
-VERSION_HARFBUZZ=10.4.0
-VERSION_PIXMAN=0.44.2
+VERSION_EXPAT=2.7.1
+VERSION_ARCHIVE=3.8.1
+VERSION_FONTCONFIG=2.16.2
+VERSION_HARFBUZZ=11.2.1
+VERSION_PIXMAN=0.46.0
 VERSION_CAIRO=1.18.4
 VERSION_FRIBIDI=1.0.16
-VERSION_PANGO=1.56.2
-VERSION_RSVG=2.59.91
+VERSION_PANGO=1.56.3
+VERSION_RSVG=2.60.0
 VERSION_AOM=3.12.0
-VERSION_HEIF=1.19.7
+VERSION_HEIF=1.19.8
 VERSION_CGIF=0.5.0
 
 # Remove patch version component
@@ -181,7 +181,7 @@ version_latest "cairo" "$VERSION_CAIRO" "247"
 version_latest "fribidi" "$VERSION_FRIBIDI" "857"
 version_latest "pango" "$VERSION_PANGO" "11783" "unstable"
 version_latest "rsvg" "$VERSION_RSVG" "5420" "unstable"
-version_latest "aom" "$VERSION_AOM" "17628"
+#version_latest "aom" "$VERSION_AOM" "17628" # aom 3.12.1 requires cmake 3.16 https://aomedia.googlesource.com/aom/+/597a35fbc9837e33366a1108631d9c72ee7a49e7
 version_latest "heif" "$VERSION_HEIF" "64439"
 version_latest "cgif" "$VERSION_CGIF" "dloebl/cgif"
 if [ "$ALL_AT_VERSION_LATEST" = "false" ]; then exit 1; fi
@@ -243,7 +243,7 @@ mkdir ${DEPS}/exif
 $CURL https://github.com/libexif/libexif/releases/download/v${VERSION_EXIF}/libexif-${VERSION_EXIF}.tar.xz | tar xJC ${DEPS}/exif --strip-components=1
 cd ${DEPS}/exif
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
-  --disable-nls --without-libiconv-prefix --without-libintl-prefix \
+  --disable-nls --disable-docs --without-libiconv-prefix --without-libintl-prefix \
   CPPFLAGS="${CPPFLAGS} -DNO_VERBOSE_TAG_DATA"
 make install-strip doc_DATA=
 
@@ -362,7 +362,7 @@ cd ${DEPS}/archive
 make install-strip libarchive_man_MANS=
 
 mkdir ${DEPS}/fontconfig
-$CURL https://www.freedesktop.org/software/fontconfig/release/fontconfig-${VERSION_FONTCONFIG}.tar.xz | tar xJC ${DEPS}/fontconfig --strip-components=1
+$CURL https://gitlab.freedesktop.org/fontconfig/fontconfig/-/archive/${VERSION_FONTCONFIG}/fontconfig-${VERSION_FONTCONFIG}.tar.gz | tar xzC ${DEPS}/fontconfig --strip-components=1
 cd ${DEPS}/fontconfig
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
   -Dcache-build=disabled -Ddoc=disabled -Dnls=disabled -Dtests=disabled -Dtools=disabled
@@ -429,6 +429,8 @@ sed -i'.bak' "/cairo-rs = /s/, \"pdf\", \"ps\"//" {librsvg-c,rsvg}/Cargo.toml
 sed -i'.bak' "/subdir('rsvg_convert')/d" meson.build
 # https://gitlab.gnome.org/GNOME/librsvg/-/merge_requests/1066#note_2356762
 sed -i'.bak' "/^if host_system in \['windows'/s/, 'linux'//" meson.build
+# [PATCH] text: verify pango/fontconfig found a suitable font
+$CURL https://gitlab.gnome.org/GNOME/librsvg/-/merge_requests/1106.patch | patch -p1
 # Regenerate the lockfile after making the above changes
 cargo update --workspace
 # Remove the --static flag from the PKG_CONFIG env since Rust does not
