@@ -245,8 +245,7 @@ cd ${DEPS}/webp
 make install-strip bin_PROGRAMS= noinst_PROGRAMS= man_MANS=
 
 mkdir ${DEPS}/tiff
-$CURL https://download.osgeo.org/libtiff/tiff-${VERSION_TIFF}.tar.gz | tar xzC ${DEPS}/tiff --strip-components=1 \
-  || (echo "Failed to download libtiff, using mirror" && $CURL https://fossies.org/linux/misc/tiff-${VERSION_TIFF}.tar.gz | tar xzC ${DEPS}/tiff --strip-components=1)
+$CURL https://download.osgeo.org/libtiff/tiff-${VERSION_TIFF}.tar.gz | tar xzC ${DEPS}/tiff --strip-components=1
 cd ${DEPS}/tiff
 # Propagate -pthread into CFLAGS to ensure WebP support
 CFLAGS="${CFLAGS} -pthread" ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
