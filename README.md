@@ -52,4 +52,4 @@ the terms of [various licences](THIRD-PARTY-NOTICES.md), all of which
 are compatible with the Apache 2.0 Licence.
 
 [^1]: https://github.com/kleisauke/net-vips/blob/master/build/Build.cs
-[^2]: https://github.com/kleisauke/pyvips-binary/blob/main/.github/workflows/build-release.yml
+[^2]: https://github.com/kleisauke/pyvips-binary/blob/main/.github/workflows/ci.yml
