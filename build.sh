@@ -43,7 +43,11 @@ for flavour in osx-x64 osx-arm64; do
     export PKG_CONFIG="$(brew --prefix)/bin/pkg-config --static"
 
     # Earliest supported version of macOS
-    export MACOSX_DEPLOYMENT_TARGET="10.15"
+    if [ $PLATFORM = "osx-arm64" ]; then
+      export MACOSX_DEPLOYMENT_TARGET="11.0"
+    else
+      export MACOSX_DEPLOYMENT_TARGET="10.15"
+    fi
 
     # Added -fno-stack-check to workaround a stack misalignment bug on macOS 10.15
     # See:
@@ -53,17 +57,6 @@ for flavour in osx-x64 osx-arm64; do
     # Prevent use of API newer than the deployment target
     export FLAGS+=" -Werror=unguarded-availability-new"
     export MESON="--cross-file=$PWD/platforms/$PLATFORM/meson.ini"
-
-    if [ $PLATFORM = "osx-arm64" ]; then
-      # ARM64 builds work via cross compilation from an x86_64 machine
-      export CHOST="aarch64-apple-darwin"
-      export RUST_TARGET="aarch64-apple-darwin"
-      export FLAGS+=" -target arm64-apple-macos11"
-      # macOS 11 Big Sur is the first version to support ARM-based macs
-      export MACOSX_DEPLOYMENT_TARGET="11.0"
-      # Set SDKROOT to the latest SDK available
-      export SDKROOT=$(xcrun -sdk macosx --show-sdk-path)
-    fi
 
     source $PWD/versions.properties
     source $PWD/build/posix.sh

@@ -82,9 +82,6 @@ if [ "$DARWIN" = true ]; then
   mkdir -p $CARGO_HOME
   mkdir -p $RUSTUP_HOME
   export PATH="${CARGO_HOME}/bin:${PATH}"
-  if [ "$PLATFORM" == "osx-arm64" ]; then
-    export DARWIN_ARM=true
-  fi
 fi
 
 # Run as many parallel jobs as there are available CPU cores
@@ -116,10 +113,8 @@ CURL="curl --silent --location --retry 3 --retry-max-time 30"
 
 if [ "$DARWIN" = true ]; then
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-    | sh -s -- -y --no-modify-path --profile minimal
-  if [ "$DARWIN_ARM" = true ]; then
-    ${CARGO_HOME}/bin/rustup target add aarch64-apple-darwin
-  fi
+    | sh -s -- -y --no-modify-path --profile minimal --default-toolchain nightly
+  export RUSTFLAGS+=" -Zlocation-detail=none -Zfmt-debug=none"
   CFLAGS= cargo install cargo-c --locked
 fi
 
@@ -151,11 +146,11 @@ make install-strip
 mkdir ${DEPS}/glib
 $CURL https://download.gnome.org/sources/glib/$(without_patch $VERSION_GLIB)/glib-${VERSION_GLIB}.tar.xz | tar xJC ${DEPS}/glib --strip-components=1
 cd ${DEPS}/glib
-$CURL https://gist.github.com/kleisauke/284d685efa00908da99ea6afbaaf39ae/raw/936a6b8013d07d358c6944cc5b5f0e27db707ace/glib-without-gregex.patch | patch -p1
-meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
+$CURL https://gist.github.com/kleisauke/284d685efa00908da99ea6afbaaf39ae/raw/12773e117bd557b83ba2a7410698db41813c3fda/glib-without-gregex.patch | patch -p1
+meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} --datadir=${TARGET}/share ${MESON} \
   --force-fallback-for=gvdb -Dintrospection=disabled -Dnls=disabled -Dlibmount=disabled -Dsysprof=disabled -Dlibelf=disabled \
   -Dtests=false -Dglib_assert=false -Dglib_checks=false -Dglib_debug=disabled ${DARWIN:+-Dbsymbolic_functions=false}
-# bin-devel is needed for glib-compile-resources
+# bin-devel is needed for glib-mkenums
 meson install -C _build --tag bin-devel,devel
 
 mkdir ${DEPS}/xml2
@@ -190,7 +185,7 @@ cd aom_build
 AOM_AS_FLAGS="${FLAGS}" cmake -G"Unix Makefiles" \
   -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=MinSizeRel \
   -DBUILD_SHARED_LIBS=FALSE -DENABLE_DOCS=0 -DENABLE_TESTS=0 -DENABLE_TESTDATA=0 -DENABLE_TOOLS=0 -DENABLE_EXAMPLES=0 \
-  -DCONFIG_PIC=1 -DENABLE_NASM=1 ${DARWIN_ARM:+-DCONFIG_RUNTIME_CPU_DETECT=0} \
+  -DCONFIG_PIC=1 -DENABLE_NASM=1 \
   -DCONFIG_AV1_HIGHBITDEPTH=0 -DCONFIG_WEBM_IO=0 \
   ..
 make install/strip
@@ -218,7 +213,7 @@ cmake -G"Unix Makefiles" \
 make install/strip
 
 mkdir ${DEPS}/png
-$CURL https://downloads.sourceforge.net/project/libpng/libpng16/${VERSION_PNG}/libpng-${VERSION_PNG}.tar.xz | tar xJC ${DEPS}/png --strip-components=1
+$CURL https://github.com/pnggroup/libpng/archive/v${VERSION_PNG}.tar.gz | tar xzC ${DEPS}/png --strip-components=1
 cd ${DEPS}/png
 ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-tools --without-binconfigs --disable-unversioned-libpng-config
@@ -291,6 +286,8 @@ make install-strip libarchive_man_MANS=
 mkdir ${DEPS}/fontconfig
 $CURL https://gitlab.freedesktop.org/fontconfig/fontconfig/-/archive/${VERSION_FONTCONFIG}/fontconfig-${VERSION_FONTCONFIG}.tar.gz | tar xzC ${DEPS}/fontconfig --strip-components=1
 cd ${DEPS}/fontconfig
+# Disable install of gettext files
+sed -i'.bak' "/subdir('its')/d" meson.build
 meson setup _build --default-library=static --buildtype=release --strip --prefix=${TARGET} ${MESON} \
   -Dcache-build=disabled -Ddoc=disabled -Dnls=disabled -Dtests=disabled -Dtools=disabled
 meson install -C _build --tag devel
@@ -381,6 +378,8 @@ cd ${DEPS}/vips
 $CURL https://github.com/libvips/build-win64-mxe/raw/v${VERSION_VIPS}/build/patches/vips-8-heifsave-disable-hbr-support.patch | patch -p1
 # [PATCH] Meson: improve reliability of function checks
 $CURL https://gist.github.com/kleisauke/85912d7fd8b779f2b60690de9b7c565a/raw/88ae86382f24b1aa8c7b8908edafa44d1e503b2b/libvips-improve-reliability-of-function-checks.patch | patch -p1
+# [PATCH] text: prevent use of rgba subpixel anti-aliasing
+$CURL https://gist.githubusercontent.com/lovell/97ac1fc68aa25dd7c11b6c148847d480/raw/05b97d1bf16902b7fa9575df72457ed65be71916/gistfile1.txt | patch -p1
 if [ "$LINUX" = true ]; then
   # Ensure symbols from external libs (except for libglib-2.0.a and libgobject-2.0.a) are not exposed
   EXCLUDE_LIBS=$(find ${TARGET}/lib -maxdepth 1 -name '*.a' ! -name 'libglib-2.0.a' ! -name 'libgobject-2.0.a' -printf "-Wl,--exclude-libs=%f ")

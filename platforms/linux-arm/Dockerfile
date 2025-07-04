@@ -29,8 +29,9 @@ RUN \
   curl https://sh.rustup.rs -sSf | sh -s -- -y \
     --no-modify-path \
     --profile minimal \
+    --target arm-unknown-linux-gnueabihf \
+    --default-toolchain nightly \
     && \
-  rustup target add arm-unknown-linux-gnueabihf && \
   cargo install cargo-c --locked && \
   ln -s /usr/bin/cmake3 /usr/bin/cmake && \
   pip3 install meson==1.7.2 ninja packaging tomli
@@ -74,6 +75,7 @@ ENV \
   CHOST="arm-linux-gnueabihf" \
   RUST_TARGET="arm-unknown-linux-gnueabihf" \
   FLAGS="-marm -march=armv7-a -mfpu=neon-vfpv4 -mfloat-abi=hard" \
+  RUSTFLAGS="-Zlocation-detail=none -Zfmt-debug=none" \
   MESON="--cross-file=/root/meson.ini"
 
 COPY Toolchain.cmake /root/
