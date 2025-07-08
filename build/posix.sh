@@ -376,10 +376,6 @@ $CURL https://github.com/libvips/libvips/releases/download/v${VERSION_VIPS}/vips
 cd ${DEPS}/vips
 # Disable HBR support in heifsave
 $CURL https://github.com/libvips/build-win64-mxe/raw/v${VERSION_VIPS}/build/patches/vips-8-heifsave-disable-hbr-support.patch | patch -p1
-# [PATCH] Meson: improve reliability of function checks
-$CURL https://gist.github.com/kleisauke/85912d7fd8b779f2b60690de9b7c565a/raw/88ae86382f24b1aa8c7b8908edafa44d1e503b2b/libvips-improve-reliability-of-function-checks.patch | patch -p1
-# [PATCH] text: prevent use of rgba subpixel anti-aliasing
-$CURL https://gist.githubusercontent.com/lovell/97ac1fc68aa25dd7c11b6c148847d480/raw/05b97d1bf16902b7fa9575df72457ed65be71916/gistfile1.txt | patch -p1
 if [ "$LINUX" = true ]; then
   # Ensure symbols from external libs (except for libglib-2.0.a and libgobject-2.0.a) are not exposed
   EXCLUDE_LIBS=$(find ${TARGET}/lib -maxdepth 1 -name '*.a' ! -name 'libglib-2.0.a' ! -name 'libgobject-2.0.a' -printf "-Wl,--exclude-libs=%f ")
