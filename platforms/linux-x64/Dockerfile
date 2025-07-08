@@ -40,13 +40,16 @@ RUN \
   ln -s /usr/bin/gcc10-g++ /usr/bin/c++ && \
   ln -s /usr/bin/gcc10-ar /usr/bin/ar && \
   ln -s /usr/bin/gcc10-nm /usr/bin/nm && \
-  ln -s /usr/bin/gcc10-ld /usr/bin/ld && \
+  ln -s /usr/bin/gcc10-ld.bfd /usr/bin/ld && \
   ln -s /usr/bin/gcc10-strip /usr/bin/strip && \
   ln -s /usr/bin/gcc10-ranlib /usr/bin/ranlib && \
   ln -s /usr/bin/gcc10-readelf /usr/bin/readelf && \
+  ln -sf /usr/bin/gcc10-ld.bfd /usr/bin/gcc10-ld && \
+  rm /usr/bin/gcc10-ld.gold && \
   curl https://sh.rustup.rs -sSf | sh -s -- -y \
     --no-modify-path \
     --profile minimal \
+    --default-toolchain nightly \
     && \
   cargo install cargo-c --locked && \
   ln -s /usr/bin/cmake3 /usr/bin/cmake && \
@@ -57,6 +60,7 @@ ENV \
   PKG_CONFIG="pkg-config --static" \
   PLATFORM="linux-x64" \
   FLAGS="-march=nehalem" \
+  RUSTFLAGS="-Zlocation-detail=none -Zfmt-debug=none" \
   MESON="--cross-file=/root/meson.ini"
 
 COPY Toolchain.cmake /root/
