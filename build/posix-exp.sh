@@ -238,29 +238,68 @@ if [ "$PLATFORM" == "linux-arm" ]; then
   sed -i '/^Libs.private:/s/ -lstdc++//' ${TARGET}/lib/pkgconfig/libheif.pc
 fi
 
+if [ "$OPENJPEG" = true ]; then
+
+mkdir ${DEPS}/openjpeg
+$CURL https://github.com/uclouvain/openjpeg/archive/refs/tags/v${VERSION_OPENJPG}.tar.gz | tar xzC ${DEPS}/openjpeg --strip-components=1
+cd ${DEPS}/openjpeg
+CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" cmake -G"Unix Makefiles" \
+  -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake \
+  -DCMAKE_INSTALL_PREFIX=${TARGET} \
+  -DCMAKE_INSTALL_LIBDIR=lib \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DBUILD_SHARED_LIBS=OFF \
+  -DBUILD_CODEC=OFF \
+  -DBUILD_DOC=OFF \
+  -DBUILD_EXAMPLES=OFF \
+  -DBUILD_JPIP=OFF \
+  -DBUILD_LUTS_GENERATOR=OFF \
+  -DBUILD_TESTING=OFF 
+make install/strip
+
+fi
+
+
+
+if [ "$JPEGLI" = true ]; then
+
+mkdir ${DEPS}/libjpeg-turbo
+$CURL https://github.com/libjpeg-turbo/libjpeg-turbo/archive/refs/tags/${VERSION_LIBJPEG_TURBO}.tar.gz | tar xzC ${DEPS}/libjpeg-turbo --strip-components=1
+cd ${DEPS}/libjpeg-turbo
+CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" cmake -G"Unix Makefiles" \
+  -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake \
+  -DCMAKE_INSTALL_PREFIX=${TARGET} \
+  -DCMAKE_INSTALL_LIBDIR=lib \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DENABLE_STATIC=TRUE \
+  -DENABLE_SHARED=FALSE \
+  -DWITH_JPEG8=TRUE \
+  -DWITH_SIMD=TRUE \
+  -DWITH_TURBOJPEG=FALSE \
+  -DWITH_MEM_SRCDST=TRUE 
+make install/strip
+
 mkdir ${DEPS}/hwy
 $CURL https://github.com/google/highway/archive/${VERSION_HWY}.tar.gz | tar xzC ${DEPS}/hwy --strip-components=1
 cd ${DEPS}/hwy
-CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" cmake -G"Unix Makefiles" \
+CFLAGS="${CFLAGS} -O3 -I${TARGET}/include" CXXFLAGS="${CXXFLAGS} -O3 -I${TARGET}/include" cmake -G"Unix Makefiles" \
   -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=Release \
   -DBUILD_SHARED_LIBS=FALSE -DBUILD_TESTING=0 -DHWY_ENABLE_CONTRIB=0 -DHWY_ENABLE_EXAMPLES=0 -DHWY_ENABLE_TESTS=0
 make install/strip
 
 
-if [ "$JPEGLI" = true ]; then
 mkdir ${DEPS}/jpegli
-export PKG_CONFIG_PATH=${ORIGINAL_PKG_CONFIG_PATH}
 git clone --recursive https://github.com/google/jpegli ${DEPS}/jpegli
 cd ${DEPS}/jpegli
 git checkout ${VERSION_JPEGLI}
 git submodule update --init --recursive
 $CURL https://raw.githubusercontent.com/libvips/build-win64-mxe/refs/heads/master/build/plugins/jpegli/patches/jpegli-0.11-fixes.patch | patch -p1
-cmake -G"Unix Makefiles" \
+CFLAGS="${CFLAGS} -O3 -I${TARGET}/include " CXXFLAGS="${CXXFLAGS} -O3 -I${TARGET}/include" cmake -G"Unix Makefiles" \
  -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DBUILD_TESTING=OFF -DJPEGXL_ENABLE_TOOLS=OFF -DJPEGXL_ENABLE_DOXYGEN=OFF -DJPEGXL_ENABLE_MANPAGES=OFF -DJPEGXL_ENABLE_BENCHMARK=OFF \
- -DJPEGXL_ENABLE_SJPEG=OFF -DJPEGXL_ENABLE_OPENEXR=OFF -DJPEGXL_ENABLE_SKCMS=OFF -DJPEGXL_FORCE_SYSTEM_LCMS2=ON -DJPEGXL_FORCE_SYSTEM_HWY=ON \
+ -DJPEGXL_ENABLE_SJPEG=OFF -DJPEGXL_ENABLE_OPENEXR=OFF -DJPEGXL_ENABLE_SKCMS=OFF -DJPEGXL_FORCE_SYSTEM_LCMS2=ON -DJPEGXL_FORCE_SYSTEM_BROTLI=OFF -DJPEGXL_FORCE_SYSTEM_HWY=ON \
  -DJPEGXL_FORCE_SYSTEM_JPEG_TURBO=ON -DJPEGXL_INSTALL_JPEGLI_LIBJPEG=ON 
 make install/strip
-unset PKG_CONFIG_PATH
+
 else
 
 mkdir ${DEPS}/jpeg
@@ -271,17 +310,22 @@ cmake -G"Unix Makefiles" \
   -DENABLE_STATIC=TRUE -DENABLE_SHARED=FALSE -DWITH_JPEG8=1 -DWITH_TURBOJPEG=FALSE -DPNG_SUPPORTED=FALSE
 make install/strip
 
+mkdir ${DEPS}/hwy
+$CURL https://github.com/google/highway/archive/${VERSION_HWY}.tar.gz | tar xzC ${DEPS}/hwy --strip-components=1
+cd ${DEPS}/hwy
+CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" cmake -G"Unix Makefiles" \
+  -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=Release \
+  -DBUILD_SHARED_LIBS=FALSE -DBUILD_TESTING=0 -DHWY_ENABLE_CONTRIB=0 -DHWY_ENABLE_EXAMPLES=0 -DHWY_ENABLE_TESTS=0
+make install/strip
+
 fi
 
 if [ "$JPEGXL" = true ]; then
 mkdir ${DEPS}/jxl
-export PKG_CONFIG_PATH=${ORIGINAL_PKG_CONFIG_PATH}
-
-$CURL https://github.com/libjxl/libjxl/archive/refs/tags/v${VERSION_JXL}.tar.gz | tar xzC ${DEPS}/jxl --strip-components=1
+git clone --branch v${VERSION_JXL} --recursive https://github.com/libjxl/libjxl.git ${DEPS}/jxl
 cd ${DEPS}/jxl
-touch ${DEPS}/jxl/third_party/lcms/COPYING
-CFLAGS="${CFLAGS} -O3" cmake -B build -S . \
-        -G 'Unix Makefiles' \
+git submodule update --init --recursive
+CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" cmake -G 'Unix Makefiles' \
         -DCMAKE_BUILD_TYPE:STRING='None' \
         -DCMAKE_INSTALL_PREFIX:PATH='/' \
         -DCMAKE_INSTALL_LIBDIR:STRING='/lib' \
@@ -297,13 +341,11 @@ CFLAGS="${CFLAGS} -O3" cmake -B build -S . \
         -DJPEGXL_ENABLE_OPENEXR=OFF \
         -DJPEGXL_ENABLE_SKCMS=OFF \
         -DJPEGXL_FORCE_SYSTEM_LCMS2=ON \
+        -DJPEGXL_FORCE_SYSTEM_BROTLI=OFF \
         -DJPEGXL_FORCE_SYSTEM_HWY=ON \
         -DJPEGXL_FORCE_SYSTEM_JPEG_TURBO=ON \
-        -DJPEGXL_INSTALL_JPEGLI_LIBJPEG=ON \
-        -Wno-dev
-CFLAGS="${CFLAGS} -O3" DESTDIR="${TARGET}" cmake --build build
-DESTDIR="${TARGET}" cmake --install build
-unset PKG_CONFIG_PATH
+        -DJPEGXL_INSTALL_JPEGLI_LIBJPEG=ON
+make install/strip
 fi
 
 

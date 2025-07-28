@@ -27,10 +27,6 @@ RUN \
     git \
     gperf \
     jq \
-    openjpeg2 openjpeg2-devel\
-    libjpeg-turbo libjpeg-turbo-devel \
-    libhwy libhwy-dev \
-    brotli brotli-devel \
     make \
     nasm \
     openssl-devel \

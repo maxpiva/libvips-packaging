@@ -23,10 +23,6 @@ RUN \
     gcc10 \
     gcc10-binutils \
     gcc10-c++ \
-    openjpeg2 openjpeg2-devel\
-    libjpeg-turbo libjpeg-turbo-devel \
-    libhwy libhwy-dev \
-    brotli brotli-devel \
     gettext \
     git \
     gperf \

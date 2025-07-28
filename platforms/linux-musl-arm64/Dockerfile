@@ -30,10 +30,6 @@ RUN \
     gperf \
     jq \
     libtool \
-    openjpeg2 openjpeg2-devel\
-    libjpeg-turbo libjpeg-turbo-devel \
-    libhwy libhwy-dev \
-    brotli brotli-devel \
     linux-headers \
     ninja \
     openssl-dev \

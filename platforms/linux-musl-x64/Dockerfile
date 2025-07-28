@@ -31,10 +31,6 @@ RUN \
     jq \
     libtool \
     linux-headers \
-    openjpeg2 openjpeg2-devel\
-    libjpeg-turbo libjpeg-turbo-devel \
-    libhwy libhwy-dev \
-    brotli brotli-devel \
     nasm \
     ninja \
     openssl-dev \
