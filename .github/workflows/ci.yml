@@ -70,7 +70,7 @@ jobs:
           pipx install meson==1.7.2
           brew install automake nasm python-packaging
       - name: Build ${{ matrix.platform }}
-        run: ./build.sh ${{ matrix.platform }}
+        run: ./build-exp.sh ${{ matrix.platform }}
       - name: Upload ${{ matrix.platform }} artifact
         uses: actions/upload-artifact@v4
         with:

@@ -141,7 +141,7 @@ export ORIGINAL_PKG_CONFIG_PATH=${PKG_CONFIG_PATH}
 unset PKG_CONFIG_PATH
 
 # Common options for curl
-CURL="curl --silent --location --retry 3 --retry-max-time 30"
+CURL="curl --fail --silent --location --retry 5 --retry-max-time 30"
 
 # Download and build dependencies from source
 
@@ -326,13 +326,14 @@ git clone --branch v${VERSION_JXL} --recursive https://github.com/libjxl/libjxl.
 cd ${DEPS}/jxl
 git submodule update --init --recursive
 CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" cmake -G 'Unix Makefiles' \
-        -DCMAKE_BUILD_TYPE:STRING='None' \
-        -DCMAKE_INSTALL_PREFIX:PATH='/' \
-        -DCMAKE_INSTALL_LIBDIR:STRING='/lib' \
-        -DCMAKE_INSTALL_INCLUDEDIR:STRING='/include' \
-        -DBUILD_TESTING=OFF \
+        -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake \
         -DCMAKE_PREFIX_PATH=${TARGET} \
         -DHWY_ROOT=${TARGET} \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=${TARGET} \
+        -DCMAKE_INSTALL_LIBDIR=lib \
+        -DCMAKE_INSTALL_INCLUDEDIR=/include \
+        -DBUILD_TESTING=OFF \
         -DJPEGXL_ENABLE_TOOLS=OFF \
         -DJPEGXL_ENABLE_DOXYGEN=OFF \
         -DJPEGXL_ENABLE_MANPAGES=OFF \
@@ -383,8 +384,6 @@ cd ${DEPS}/tiff
 CFLAGS="${CFLAGS} -pthread" ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-tools --disable-tests --disable-contrib --disable-docs --disable-mdi --disable-pixarlog --disable-old-jpeg --disable-cxx --disable-lzma --disable-zstd --disable-libdeflate
 make install-strip noinst_PROGRAMS= dist_doc_DATA=
-
-
 
 build_freetype() {
   rm -rf ${DEPS}/freetype
