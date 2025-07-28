@@ -22,6 +22,10 @@ RUN \
     python3 \
     # Needed by crosstool-ng
     help2man \
+    openjpeg2 openjpeg2-devel\
+    libjpeg-turbo libjpeg-turbo-devel \
+    libhwy libhwy-dev \
+    brotli brotli-devel \
     ncurses-devel \
     texinfo \
     which \
