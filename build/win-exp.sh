@@ -19,12 +19,12 @@ case "${PLATFORM#*-}" in
   x64) ARCH=w64 ;;
   x64.net452)
     ARCH=w64
-    VARIANT=static-jpegli-ffi
+    VARIANT=static-ffi-jpegli
     ;;
   x86) ARCH=w32 ;;
   x86.net452)
     ARCH=w32
-    VARIANT=static-jpegli-ffi
+    VARIANT=static-ffi-jpegli
     ;;
   arm64) ARCH=arm64 ;;
 esac

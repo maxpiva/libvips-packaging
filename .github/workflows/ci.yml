@@ -1,7 +1,4 @@
 name: CI
-on:
-  - push
-  - pull_request
 permissions: {}
 jobs:
   check-latest-versions:
