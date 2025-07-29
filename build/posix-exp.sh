@@ -224,20 +224,6 @@ AOM_AS_FLAGS="${FLAGS}" cmake -G"Unix Makefiles" \
   ..
 make install/strip
 
-mkdir ${DEPS}/heif
-$CURL https://github.com/strukturag/libheif/releases/download/v${VERSION_HEIF}/libheif-${VERSION_HEIF}.tar.gz | tar xzC ${DEPS}/heif --strip-components=1
-cd ${DEPS}/heif
-# Downgrade minimum required CMake version to 3.12 - https://github.com/strukturag/libheif/issues/975
-sed -i'.bak' "/^cmake_minimum_required/s/3.16.3/3.12/" CMakeLists.txt
-CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" cmake -G"Unix Makefiles" \
-  -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=Release \
-  -DBUILD_SHARED_LIBS=FALSE -DBUILD_TESTING=0 -DENABLE_PLUGIN_LOADING=0 -DWITH_EXAMPLES=0 -DCMAKE_CXX_FLAGS="$(CXXFLAGS) -DHAVE_JPEG_WRITE_ICC_PROFILE" ${HEIFX265}
-make install/strip
-if [ "$PLATFORM" == "linux-arm" ]; then
-  # Remove -lstdc++ from Libs.private, it won't work with -static-libstdc++
-  sed -i '/^Libs.private:/s/ -lstdc++//' ${TARGET}/lib/pkgconfig/libheif.pc
-fi
-
 if [ "$OPENJPEG" = true ]; then
 
 mkdir ${DEPS}/openjpeg
@@ -319,6 +305,22 @@ CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" cmake -G"Unix Makefiles" \
 make install/strip
 
 fi
+
+mkdir ${DEPS}/heif
+$CURL https://github.com/strukturag/libheif/releases/download/v${VERSION_HEIF}/libheif-${VERSION_HEIF}.tar.gz | tar xzC ${DEPS}/heif --strip-components=1
+cd ${DEPS}/heif
+# Downgrade minimum required CMake version to 3.12 - https://github.com/strukturag/libheif/issues/975
+sed -i'.bak' "/^cmake_minimum_required/s/3.16.3/3.12/" CMakeLists.txt
+CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3 -I${TARGET}/include" cmake -G"Unix Makefiles" \
+  -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=Release \
+  -DBUILD_SHARED_LIBS=FALSE -DBUILD_TESTING=0 -DENABLE_PLUGIN_LOADING=0 -DWITH_EXAMPLES=0 -DCMAKE_CXX_FLAGS="$(CXXFLAGS) -DHAVE_JPEG_WRITE_ICC_PROFILE" ${HEIFX265}
+make install/strip
+if [ "$PLATFORM" == "linux-arm" ]; then
+  # Remove -lstdc++ from Libs.private, it won't work with -static-libstdc++
+  sed -i '/^Libs.private:/s/ -lstdc++//' ${TARGET}/lib/pkgconfig/libheif.pc
+fi
+
+
 
 if [ "$JPEGXL" = true ]; then
 mkdir ${DEPS}/jxl
