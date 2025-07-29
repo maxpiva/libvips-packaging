@@ -225,7 +225,7 @@ AOM_AS_FLAGS="${FLAGS}" cmake -G"Unix Makefiles" \
 make install/strip
 
 if [ "$OPENJPEG" = true ]; then
-
+echo "Building JPG2000..."
 mkdir ${DEPS}/openjpeg
 $CURL https://github.com/uclouvain/openjpeg/archive/refs/tags/v${VERSION_OPENJPG}.tar.gz | tar xzC ${DEPS}/openjpeg --strip-components=1
 cd ${DEPS}/openjpeg
@@ -245,10 +245,9 @@ make install/strip
 
 fi
 
-
-
 if [ "$JPEGLI" = true ]; then
 
+echo "Building LIBJPEG TURBO..."
 mkdir ${DEPS}/libjpeg-turbo
 $CURL https://github.com/libjpeg-turbo/libjpeg-turbo/archive/refs/tags/${VERSION_LIBJPEG_TURBO}.tar.gz | tar xzC ${DEPS}/libjpeg-turbo --strip-components=1
 cd ${DEPS}/libjpeg-turbo
@@ -265,6 +264,7 @@ CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" cmake -G"Unix Makefiles" \
   -DWITH_MEM_SRCDST=TRUE 
 make install/strip
 
+echo "Building HWY..."
 mkdir ${DEPS}/hwy
 $CURL https://github.com/google/highway/archive/${VERSION_HWY}.tar.gz | tar xzC ${DEPS}/hwy --strip-components=1
 cd ${DEPS}/hwy
@@ -274,6 +274,7 @@ CFLAGS="${CFLAGS} -O3 -I${TARGET}/include" CXXFLAGS="${CXXFLAGS} -O3 -I${TARGET}
 make install/strip
 
 
+echo "Building JPEGLI..."
 mkdir ${DEPS}/jpegli
 git clone --recursive https://github.com/google/jpegli ${DEPS}/jpegli
 cd ${DEPS}/jpegli
@@ -288,6 +289,7 @@ make install/strip
 
 else
 
+echo "Building JPEG..."
 mkdir ${DEPS}/jpeg
 $CURL https://github.com/mozilla/mozjpeg/archive/v${VERSION_MOZJPEG}.tar.gz | tar xzC ${DEPS}/jpeg --strip-components=1
 cd ${DEPS}/jpeg
@@ -296,6 +298,7 @@ cmake -G"Unix Makefiles" \
   -DENABLE_STATIC=TRUE -DENABLE_SHARED=FALSE -DWITH_JPEG8=1 -DWITH_TURBOJPEG=FALSE -DPNG_SUPPORTED=FALSE
 make install/strip
 
+echo "Building HWY..."
 mkdir ${DEPS}/hwy
 $CURL https://github.com/google/highway/archive/${VERSION_HWY}.tar.gz | tar xzC ${DEPS}/hwy --strip-components=1
 cd ${DEPS}/hwy
@@ -306,6 +309,7 @@ make install/strip
 
 fi
 
+echo "Building HEIF..."
 mkdir ${DEPS}/heif
 $CURL https://github.com/strukturag/libheif/releases/download/v${VERSION_HEIF}/libheif-${VERSION_HEIF}.tar.gz | tar xzC ${DEPS}/heif --strip-components=1
 cd ${DEPS}/heif
