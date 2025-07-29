@@ -316,7 +316,7 @@ $CURL https://github.com/strukturag/libheif/releases/download/v${VERSION_HEIF}/l
 cd ${DEPS}/heif
 # Downgrade minimum required CMake version to 3.12 - https://github.com/strukturag/libheif/issues/975
 sed -i'.bak' "/^cmake_minimum_required/s/3.16.3/3.12/" CMakeLists.txt
-CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3 -I${TARGET}/include" cmake -G"Unix Makefiles" \
+CFLAGS="${CFLAGS} -O3 -I${TARGET}/include" CXXFLAGS="${CXXFLAGS} -O3 -I${TARGET}/include" cmake -G"Unix Makefiles" \
   -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_PREFIX_PATH=${TARGET} \
   -DJPEG_INCLUDE_DIR=${TARGET}/include \
   -DJPEG_LIBRARY=${TARGET}/lib/libjpeg.a -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=Release \
