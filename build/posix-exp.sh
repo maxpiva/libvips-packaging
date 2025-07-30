@@ -18,7 +18,6 @@ without_prerelease() {
 export JPEGLI=true
 export JPEGXL=true
 export OPENJPEG=true
-export HEVC=false
 
 
 # Environment / working directories
@@ -48,11 +47,6 @@ mkdir ${TARGET}
 # Overriden to performance (-O3) for select dependencies that benefit
 export FLAGS+=" -Os -fPIC"
 
-if [ "$HEVC" = true ]; then
-  export HEIFX265+=""
-else
-  export HEIFX265+="-DWITH_LIBDE265=0 -DWITH_X265=0"
-fi
 
 if [ "$JPEGXL" = true ]; then
  export VIPSJPEGXL+="-Djpeg-xl=enabled"
@@ -60,16 +54,12 @@ else
  export VIPSJPEGXL+="-Djpeg-xl=disabled"
 fi
 
-if [ "$JPEGLI" = true ]; then
-  export HEIFJPEGLI+="-DHAVE_JPEG_WRITE_ICC_PROFILE"
-else
-  export HEIFJPEGLI+=""
-fi
-
 if [ "$OPENJPEG" = true ]; then
   export VIPSOPENJPEG+="-Dopenjpeg=enabled"
+  export HEIFOPENJPEG+="-DWITH_OpenJPEG_ENCODER=ON -DWITH_OpenJPEG_DECODER=ON"
 else
   export VIPSOPENJPEG+="-Dopenjpeg=disabled"
+  export HEIFOPENJPEG+=""
 fi
 
 
@@ -256,19 +246,6 @@ CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" cmake -G"Unix Makefiles" \
   -DCMAKE_INSTALL_PREFIX=${TARGET} \
   -DCMAKE_INSTALL_LIBDIR=lib \
   -DCMAKE_BUILD_TYPE=Release \
-  -DENABLE_STATIC=FALSE \
-  -DENABLE_SHARED=TRUE \
-  -DWITH_JPEG8=TRUE \
-  -DWITH_SIMD=TRUE \
-  -DWITH_TURBOJPEG=FALSE \
-  -DWITH_MEM_SRCDST=TRUE 
-make install/strip
-cd ${DEPS}/libjpeg-turbo
-CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" cmake -G"Unix Makefiles" \
-  -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake \
-  -DCMAKE_INSTALL_PREFIX=${TARGET} \
-  -DCMAKE_INSTALL_LIBDIR=lib \
-  -DCMAKE_BUILD_TYPE=Release \
   -DENABLE_STATIC=TRUE \
   -DENABLE_SHARED=FALSE \
   -DWITH_JPEG8=TRUE \
@@ -330,16 +307,14 @@ $CURL https://github.com/strukturag/libheif/releases/download/v${VERSION_HEIF}/l
 cd ${DEPS}/heif
 # Downgrade minimum required CMake version to 3.12 - https://github.com/strukturag/libheif/issues/975
 sed -i'.bak' "/^cmake_minimum_required/s/3.16.3/3.12/" CMakeLists.txt
-CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3 -I${TARGET}/include" cmake -G"Unix Makefiles" \
-  -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_PREFIX_PATH=${TARGET} \
-  -DJPEG_INCLUDE_DIR=${TARGET}/include -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=Release -DWITH_OpenJPEG_ENCODER=ON -DWITH_OpenJPEG_DECODER=ON \
-  -DBUILD_SHARED_LIBS=FALSE -DBUILD_TESTING=0 -DENABLE_PLUGIN_LOADING=0 -DWITH_EXAMPLES=0 -DCMAKE_CXX_FLAGS="$(CXXFLAGS) -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_PREFIX_PATH=${TARGET} -DWITH_JPEG=ON -DWITH_LIBJPEG_TURBO=ON" -DWITH_JPEG=ON ${HEIFX265}
+CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" cmake -G"Unix Makefiles" \
+  -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_INSTALL_LIBDIR=lib ${HEIFOPENJPEG} -DCMAKE_BUILD_TYPE=Release \
+  -DBUILD_SHARED_LIBS=FALSE -DBUILD_TESTING=0 -DENABLE_PLUGIN_LOADING=0 -DWITH_EXAMPLES=0 -DWITH_LIBDE265=0 -DWITH_X265=0
 make install/strip
 if [ "$PLATFORM" == "linux-arm" ]; then
   # Remove -lstdc++ from Libs.private, it won't work with -static-libstdc++
   sed -i '/^Libs.private:/s/ -lstdc++//' ${TARGET}/lib/pkgconfig/libheif.pc
 fi
-
 
 
 if [ "$JPEGXL" = true ]; then
