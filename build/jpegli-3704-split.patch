@@ -435,10 +435,6 @@ index 1111111..2222222 100644
 +      set(JPEGLI_PUBLIC_LIBS "-lm ${PKGCONFIG_CXX_LIB}")
 +    endif()
 +
-+    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/jpegli/libjpeg.pc.in"
-+                   "libjpeg.pc" @ONLY)
-+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libjpeg.pc"
-+            DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
    endif()
  
    
