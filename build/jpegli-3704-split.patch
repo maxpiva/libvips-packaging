@@ -260,8 +260,6 @@ Avoids `make install` failing when system libjpeg is used and
 
 Related to: https://github.com/libjxl/libjxl/pull/3704
 
----
-
 diff --git a/lib/jpegli.cmake b/lib/jpegli.cmake
 index 2222222..3333333 100644
 --- a/lib/jpegli.cmake
