@@ -368,17 +368,7 @@ CFLAGS="${CFLAGS} -O3" meson setup _build --default-library=static --buildtype=r
   -Dexamples=false -Dtests=false
 meson install -C _build --tag devel
 
-if [ "$PLATFORM" == "linux-arm" ]; then
-  for pcfile in "${TARGET}/lib/pkgconfig/"*.pc; do
-    if grep -q '\-lstdc++' "$pcfile"; then
-      echo "=== Found -lstdc++ in: $pcfile ==="
-      cat "$pcfile"
-      echo    # optional empty line for readability
-    fi
-  done
-  # Remove -lstdc++ from Libs.private, it won't work with -static-libstdc++
-  sed -i '/^Libs.private:/s/ -lstdc++//' ${TARGET}/lib/pkgconfig/libheif.pc
-fi
+
 
 mkdir ${DEPS}/vips
 $CURL https://github.com/libvips/libvips/releases/download/v${VERSION_VIPS}/vips-${VERSION_VIPS}.tar.xz | tar xJC ${DEPS}/vips --strip-components=1

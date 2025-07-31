@@ -500,6 +500,19 @@ CFLAGS="${CFLAGS} -O3" meson setup _build --default-library=static --buildtype=r
   -Dexamples=false -Dtests=false
 meson install -C _build --tag devel
 
+
+if [ "$PLATFORM" == "linux-arm" ]; then
+  # Remove -lstdc++ from Libs.private, it won't work with -static-libstdc++
+  sed -i '/^Libs.private:/s/ -lstdc++//' ${TARGET}/lib/pkgconfig/libjpeg.pc
+  sed -i '/^Libs.private:/s/ -lstdc++//' ${TARGET}/lib/pkgconfig/libheif.pc
+  if [ "$JPEGXL" = true ]; then
+    sed -i '/^Libs.private:/s/ -lstdc++//' ${TARGET}/lib/pkgconfig/libjxl.pc
+    sed -i '/^Libs.private:/s/ -lstdc++//' ${TARGET}/lib/pkgconfig/libjxl_cms.pc
+  fi
+fi
+
+
+
 mkdir ${DEPS}/vips
 $CURL https://github.com/libvips/libvips/releases/download/v${VERSION_VIPS}/vips-${VERSION_VIPS}.tar.xz | tar xJC ${DEPS}/vips --strip-components=1
 cd ${DEPS}/vips
