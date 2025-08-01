@@ -249,7 +249,6 @@ CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" cmake -G"Unix Makefiles" \
   -DENABLE_STATIC=TRUE \
   -DENABLE_SHARED=FALSE \
   -DWITH_JPEG8=TRUE \
-  -DWITH_12BIT=1 \
   -DWITH_SIMD=TRUE \
   -DWITH_TURBOJPEG=FALSE \
   -DWITH_MEM_SRCDST=TRUE 
@@ -376,8 +375,10 @@ cd ${DEPS}/webp
 make install-strip bin_PROGRAMS= noinst_PROGRAMS= man_MANS=
 
 mkdir ${DEPS}/tiff
-$CURL https://download.osgeo.org/libtiff/tiff-${VERSION_TIFF}.tar.gz | tar xzC ${DEPS}/tiff --strip-components=1
+#Need pass v4.7.0 (Bug in JPEG_TURBO DETECTION > 2.2)
+git clone --recursive https://github.com/libsdl-org/libtiff ${DEPS}/tiff
 cd ${DEPS}/tiff
+git checkout ${VERSION_TIFF}
 # Propagate -pthread into CFLAGS to ensure WebP support
 CFLAGS="${CFLAGS} -pthread" ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-tools --disable-tests --disable-contrib --disable-docs --disable-mdi --disable-pixarlog --disable-old-jpeg --disable-cxx --disable-lzma --disable-zstd --disable-libdeflate
