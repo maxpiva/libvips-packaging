@@ -329,8 +329,6 @@ CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" cmake -G 'Unix Makefiles' \
         -DHWY_ROOT=${TARGET} \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX=${TARGET} \
-        -DCMAKE_INSTALL_LIBDIR=lib \
-        -DCMAKE_INSTALL_INCLUDEDIR=/include \
         -DBUILD_TESTING=OFF \
         -DJPEGLI_ENABLE_STATIC=ON \
         -DJPEGXL_ENABLE_TOOLS=OFF \
