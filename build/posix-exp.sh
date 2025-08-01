@@ -377,6 +377,9 @@ make install-strip bin_PROGRAMS= noinst_PROGRAMS= man_MANS=
 mkdir ${DEPS}/tiff
 $CURL https://download.osgeo.org/libtiff/tiff-${VERSION_TIFF}.tar.gz | tar xzC ${DEPS}/tiff --strip-components=1
 cd ${DEPS}/tiff
+if [ "$PLATFORM" == "linux-arm64" ]; then
+  CFLAGS="${CFLAGS//-DHAVE_JPEGTURBO_DUAL_MODE_8_12/}"
+fi
 # Propagate -pthread into CFLAGS to ensure WebP support
 CFLAGS="${CFLAGS} -pthread" ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-tools --disable-tests --disable-contrib --disable-docs --disable-mdi --disable-pixarlog --disable-old-jpeg --disable-cxx --disable-lzma --disable-zstd --disable-libdeflate
