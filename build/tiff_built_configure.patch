@@ -1,0 +1,13 @@
+diff --git a/configure b/configure
+index 1111111..2222222 100644
+--- a/configure
++++ b/configure
+@@ -18712,7 +18712,7 @@
+ { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_jpeg_jpeg12_read_scanlines" >&5
+ $as_echo "$ac_cv_lib_jpeg_jpeg12_read_scanlines" >&6; }
+ if test "x$ac_cv_lib_jpeg_jpeg12_read_scanlines" = xyes; then :
+-  HAVE_JPEGTURBO_DUAL_MODE_8_12=yes
++  HAVE_JPEGTURBO_DUAL_MODE_8_12=no
+ else
+   HAVE_JPEGTURBO_DUAL_MODE_8_12=no
+ fi

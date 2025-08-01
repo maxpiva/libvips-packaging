@@ -377,8 +377,9 @@ make install-strip bin_PROGRAMS= noinst_PROGRAMS= man_MANS=
 mkdir ${DEPS}/tiff
 $CURL https://download.osgeo.org/libtiff/tiff-${VERSION_TIFF}.tar.gz | tar xzC ${DEPS}/tiff --strip-components=1
 cd ${DEPS}/tiff
-#Patches LIB JPEG TURBO BAD DETECTION
+#Patches LIB JPEG TURBO BAD DETECTION 743 patch it, but configure is prebuilt
 $CURL https://gitlab.com/libtiff/libtiff/-/merge_requests/743.patch | patch -p1
+$CURL https://raw.githubusercontent.com/maxpiva/libvips-packaging/refs/heads/main/build/tiff_built_configure.patch | patch -p1
 # Propagate -pthread into CFLAGS to ensure WebP support
 CFLAGS="${CFLAGS} -pthread" ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-tools --disable-tests --disable-contrib --disable-docs --disable-mdi --disable-pixarlog --disable-old-jpeg --disable-cxx --disable-lzma --disable-zstd --disable-libdeflate
