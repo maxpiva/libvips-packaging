@@ -375,10 +375,10 @@ cd ${DEPS}/webp
 make install-strip bin_PROGRAMS= noinst_PROGRAMS= man_MANS=
 
 mkdir ${DEPS}/tiff
-#Need pass v4.7.0 (Bug in JPEG_TURBO DETECTION > 2.2)
-git clone --recursive https://github.com/libsdl-org/libtiff ${DEPS}/tiff
+$CURL https://download.osgeo.org/libtiff/tiff-${VERSION_TIFF}.tar.gz | tar xzC ${DEPS}/tiff --strip-components=1
 cd ${DEPS}/tiff
-git checkout ${VERSION_TIFF}
+#Patches LIB JPEG TURBO BAD DETECTION
+$CURL https://gitlab.com/libtiff/libtiff/-/merge_requests/743.patch | patch -p1
 # Propagate -pthread into CFLAGS to ensure WebP support
 CFLAGS="${CFLAGS} -pthread" ./configure --host=${CHOST} --prefix=${TARGET} --enable-static --disable-shared --disable-dependency-tracking \
   --disable-tools --disable-tests --disable-contrib --disable-docs --disable-mdi --disable-pixarlog --disable-old-jpeg --disable-cxx --disable-lzma --disable-zstd --disable-libdeflate
