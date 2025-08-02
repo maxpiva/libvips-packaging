@@ -237,6 +237,14 @@ fi
 
 if [ "$JPEGLI" = true ]; then
 
+echo "Building HWY..."
+mkdir ${DEPS}/hwy
+$CURL https://github.com/google/highway/archive/${VERSION_HWY}.tar.gz | tar xzC ${DEPS}/hwy --strip-components=1
+cd ${DEPS}/hwy
+CFLAGS="${CFLAGS} -O3 -I${TARGET}/include" CXXFLAGS="${CXXFLAGS} -O3 -I${TARGET}/include" cmake -G"Unix Makefiles" \
+  -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=Release \
+  -DBUILD_SHARED_LIBS=FALSE -DBUILD_TESTING=0 -DHWY_ENABLE_CONTRIB=0 -DHWY_ENABLE_EXAMPLES=0 -DHWY_ENABLE_TESTS=0
+make install/strip
 
 echo "Building JPEGLI..."
 mkdir ${DEPS}/jpegli
@@ -253,14 +261,7 @@ CFLAGS="${CFLAGS} -O3 -I${TARGET}/include " CXXFLAGS="${CXXFLAGS} -O3 -I${TARGET
  -DJPEGXL_FORCE_SYSTEM_JPEG_TURBO=OFF -DJPEGXL_INSTALL_JPEGLI_LIBJPEG=ON 
 make install/strip
 
-echo "Building HWY..."
-mkdir ${DEPS}/hwy
-$CURL https://github.com/google/highway/archive/${VERSION_HWY}.tar.gz | tar xzC ${DEPS}/hwy --strip-components=1
-cd ${DEPS}/hwy
-CFLAGS="${CFLAGS} -O3 -I${TARGET}/include" CXXFLAGS="${CXXFLAGS} -O3 -I${TARGET}/include" cmake -G"Unix Makefiles" \
-  -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=Release \
-  -DBUILD_SHARED_LIBS=FALSE -DBUILD_TESTING=0 -DHWY_ENABLE_CONTRIB=0 -DHWY_ENABLE_EXAMPLES=0 -DHWY_ENABLE_TESTS=0
-make install/strip
+
 
 else
 
