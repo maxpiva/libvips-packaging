@@ -237,33 +237,6 @@ fi
 
 if [ "$JPEGLI" = true ]; then
 
-echo "Building LIBJPEG TURBO..."
-mkdir ${DEPS}/libjpeg-turbo
-$CURL https://github.com/libjpeg-turbo/libjpeg-turbo/archive/refs/tags/${VERSION_LIBJPEG_TURBO}.tar.gz | tar xzC ${DEPS}/libjpeg-turbo --strip-components=1
-cd ${DEPS}/libjpeg-turbo
-CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" cmake -G"Unix Makefiles" \
-  -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake \
-  -DCMAKE_INSTALL_PREFIX=${TARGET} \
-  -DCMAKE_INSTALL_LIBDIR=lib \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DENABLE_STATIC=TRUE \
-  -DENABLE_SHARED=FALSE \
-  -DWITH_JPEG8=TRUE \
-  -DWITH_SIMD=TRUE \
-  -DWITH_TURBOJPEG=FALSE \
-  -DWITH_MEM_SRCDST=TRUE 
-make install/strip
-
-
-echo "Building HWY..."
-mkdir ${DEPS}/hwy
-$CURL https://github.com/google/highway/archive/${VERSION_HWY}.tar.gz | tar xzC ${DEPS}/hwy --strip-components=1
-cd ${DEPS}/hwy
-CFLAGS="${CFLAGS} -O3 -I${TARGET}/include" CXXFLAGS="${CXXFLAGS} -O3 -I${TARGET}/include" cmake -G"Unix Makefiles" \
-  -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=Release \
-  -DBUILD_SHARED_LIBS=FALSE -DBUILD_TESTING=0 -DHWY_ENABLE_CONTRIB=0 -DHWY_ENABLE_EXAMPLES=0 -DHWY_ENABLE_TESTS=0
-make install/strip
-
 
 echo "Building JPEGLI..."
 mkdir ${DEPS}/jpegli
@@ -277,7 +250,16 @@ $CURL https://raw.githubusercontent.com/libvips/build-win64-mxe/refs/heads/maste
 CFLAGS="${CFLAGS} -O3 -I${TARGET}/include " CXXFLAGS="${CXXFLAGS} -O3 -I${TARGET}/include" cmake -G"Unix Makefiles" \
  -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DBUILD_TESTING=OFF -DJPEGXL_ENABLE_TOOLS=OFF -DJPEGXL_ENABLE_DOXYGEN=OFF -DJPEGXL_ENABLE_MANPAGES=OFF -DJPEGXL_ENABLE_BENCHMARK=OFF \
  -DJPEGXL_ENABLE_SJPEG=OFF -DJPEGXL_ENABLE_OPENEXR=OFF -DJPEGLI_ENABLE_STATIC=ON -DJPEGXL_ENABLE_JNI=OFF -DJPEGXL_ENABLE_SKCMS=OFF -DJPEGXL_FORCE_SYSTEM_LCMS2=ON -DJPEGXL_FORCE_SYSTEM_BROTLI=OFF -DJPEGXL_FORCE_SYSTEM_HWY=ON \
- -DJPEGXL_FORCE_SYSTEM_JPEG_TURBO=ON -DJPEGXL_INSTALL_JPEGLI_LIBJPEG=ON 
+ -DJPEGXL_FORCE_SYSTEM_JPEG_TURBO=OFF -DJPEGXL_INSTALL_JPEGLI_LIBJPEG=ON 
+make install/strip
+
+echo "Building HWY..."
+mkdir ${DEPS}/hwy
+$CURL https://github.com/google/highway/archive/${VERSION_HWY}.tar.gz | tar xzC ${DEPS}/hwy --strip-components=1
+cd ${DEPS}/hwy
+CFLAGS="${CFLAGS} -O3 -I${TARGET}/include" CXXFLAGS="${CXXFLAGS} -O3 -I${TARGET}/include" cmake -G"Unix Makefiles" \
+  -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=Release \
+  -DBUILD_SHARED_LIBS=FALSE -DBUILD_TESTING=0 -DHWY_ENABLE_CONTRIB=0 -DHWY_ENABLE_EXAMPLES=0 -DHWY_ENABLE_TESTS=0
 make install/strip
 
 else
