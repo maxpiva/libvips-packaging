@@ -309,7 +309,6 @@ mkdir ${DEPS}/jxl
 git clone --branch v${VERSION_JXL} --recursive https://github.com/libjxl/libjxl.git ${DEPS}/jxl
 cd ${DEPS}/jxl
 git submodule update --init --recursive
-./deps
 CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" cmake -G 'Unix Makefiles' \
         -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake \
         -DCMAKE_PREFIX_PATH=${TARGET} \
