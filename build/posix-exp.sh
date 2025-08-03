@@ -254,6 +254,8 @@ git checkout ${VERSION_JPEGLI}
 git submodule update --init --recursive
 $CURL https://raw.githubusercontent.com/maxpiva/libvips-packaging/refs/heads/main/build/jpegli-3704-split.patch | patch -p1
 #$CURL https://raw.githubusercontent.com/libvips/build-win64-mxe/refs/heads/master/build/plugins/jpegli/patches/jpegli-0.11-fixes.patch | patch -p1
+#Do it with 3.1.0, instead original
+$CURL https://github.com/libjpeg-turbo/libjpeg-turbo/archive/refs/tags/${VERSION_LIBJPEG_TURBO}.tar.gz | tar xzC ${DEPS}/jpegli/third_party/libjpeg-turbo --strip-components=1
 
 CFLAGS="${CFLAGS} -O3 -I${TARGET}/include " CXXFLAGS="${CXXFLAGS} -O3 -I${TARGET}/include" cmake -G"Unix Makefiles" \
  -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_INSTALL_PREFIX=${TARGET} -DBUILD_TESTING=OFF -DJPEGXL_ENABLE_TOOLS=OFF -DJPEGXL_ENABLE_DOXYGEN=OFF -DJPEGXL_ENABLE_MANPAGES=OFF -DJPEGXL_ENABLE_BENCHMARK=OFF \
@@ -291,7 +293,7 @@ $CURL https://github.com/strukturag/libheif/releases/download/v${VERSION_HEIF}/l
 cd ${DEPS}/heif
 # Downgrade minimum required CMake version to 3.12 - https://github.com/strukturag/libheif/issues/975
 sed -i'.bak' "/^cmake_minimum_required/s/3.16.3/3.12/" CMakeLists.txt
-CFLAGS="${CFLAGS} -O3 -I${TARGET}/include" CXXFLAGS="${CXXFLAGS} -O3 -I${TARGET}/include" cmake -G"Unix Makefiles" \
+CFLAGS="${CFLAGS} -O3 -I${TARGET}/include -DLIBJPEG_TURBO_VERSION_NUMBER=3001001" CXXFLAGS="${CXXFLAGS} -O3 -I${TARGET}/include -DLIBJPEG_TURBO_VERSION_NUMBER=3001001" cmake -G"Unix Makefiles" \
   -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DCMAKE_INSTALL_LIBDIR=lib ${HEIFOPENJPEG} -DCMAKE_BUILD_TYPE=Release \
   -DBUILD_SHARED_LIBS=FALSE -DBUILD_TESTING=0 -DENABLE_PLUGIN_LOADING=0 -DWITH_EXAMPLES=0 -DWITH_LIBDE265=0 -DWITH_X265=0
 make install/strip
@@ -306,6 +308,7 @@ mkdir ${DEPS}/jxl
 git clone --branch v${VERSION_JXL} --recursive https://github.com/libjxl/libjxl.git ${DEPS}/jxl
 cd ${DEPS}/jxl
 git submodule update --init --recursive
+./deps
 CFLAGS="${CFLAGS} -O3" CXXFLAGS="${CXXFLAGS} -O3" cmake -G 'Unix Makefiles' \
         -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake \
         -DCMAKE_PREFIX_PATH=${TARGET} \
