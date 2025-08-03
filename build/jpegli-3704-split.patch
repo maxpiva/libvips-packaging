@@ -464,12 +464,13 @@ diff --git a/lib/jpegli.cmake b/lib/jpegli.cmake
 index 1111111..2222222 100644
 --- a/lib/jpegli.cmake
 +++ b/lib/jpegli.cmake
-@@ -31,7 +31,7 @@
+@@ -31,8 +31,7 @@
  # libjpeg-turbo
  find_package(JPEG)
  
 -if (NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/libjpeg-turbo/jpeglib.h" OR
-+if (NOT EXISTS "../third_party/libjpeg-turbo/jpeglib.h" OR
-     JPEGXL_FORCE_SYSTEM_JPEG_TURBO)
+-    JPEGXL_FORCE_SYSTEM_JPEG_TURBO)
++if (JPEGXL_FORCE_SYSTEM_JPEG_TURBO)
    if (NOT JPEG_FOUND)
      message(FATAL_ERROR
+          "JPEG not found, install libjpeg62-turbo and libjpeg62-turbo-dev or"

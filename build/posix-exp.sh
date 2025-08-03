@@ -252,8 +252,8 @@ git clone --recursive https://github.com/google/jpegli ${DEPS}/jpegli
 cd ${DEPS}/jpegli
 git checkout ${VERSION_JPEGLI}
 git submodule update --init --recursive
-#$CURL https://raw.githubusercontent.com/maxpiva/libvips-packaging/refs/heads/main/build/jpegli-3704-split.patch | patch -p1
-$CURL https://raw.githubusercontent.com/libvips/build-win64-mxe/refs/heads/master/build/plugins/jpegli/patches/jpegli-0.11-fixes.patch | patch -p1
+$CURL https://raw.githubusercontent.com/maxpiva/libvips-packaging/refs/heads/main/build/jpegli-3704-split.patch | patch -p1
+#$CURL https://raw.githubusercontent.com/libvips/build-win64-mxe/refs/heads/master/build/plugins/jpegli/patches/jpegli-0.11-fixes.patch | patch -p1
 
 CFLAGS="${CFLAGS} -O3 -I${TARGET}/include " CXXFLAGS="${CXXFLAGS} -O3 -I${TARGET}/include" cmake -G"Unix Makefiles" \
  -DCMAKE_TOOLCHAIN_FILE=${ROOT}/Toolchain.cmake -DCMAKE_INSTALL_PREFIX=${TARGET} -DBUILD_TESTING=OFF -DJPEGXL_ENABLE_TOOLS=OFF -DJPEGXL_ENABLE_DOXYGEN=OFF -DJPEGXL_ENABLE_MANPAGES=OFF -DJPEGXL_ENABLE_BENCHMARK=OFF \
