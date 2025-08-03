@@ -474,3 +474,4 @@ index 1111111..2222222 100644
    if (NOT JPEG_FOUND)
      message(FATAL_ERROR
           "JPEG not found, install libjpeg62-turbo and libjpeg62-turbo-dev or"
+
